@@ -10,17 +10,23 @@
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
   </head>
   <body>
-    <section class="page-header">
-      <h1 class="project-name">{{ site.title | default: site.github.repository_name }}</h1>
-      <h2 class="project-tagline">{{ site.description | default: site.github.project_tagline }}</h2>
-      <h3 class="project-tagline">Annie Xu and Michael You</h3>
-
-      {% for entry in site.data.navigation %}
-        <a href="#" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
-      {% endfor %}
-      
-      <a href="{{ site.github.repository_url }}" class="btn">View project on GitHub</a>
-    </section>
+    <header>
+        <div class="container">
+          <h1>{{ site.title | default: site.github.repository_name }}</h1>
+          <h3>{{ site.description | default: site.github.project_tagline }}</h3>
+          <h2>{{ site.author | default: site.github.owner_name }}</h2>
+  
+          <section id="downloads">
+            <p>
+              {% for entry in site.data.navigation %}
+                <a href="#" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
+              {% endfor %}
+              <a href="{{ site.github.repository_url }}" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+            </p>
+  
+          </section>
+        </div>
+      </header>
 
     <section class="main-content">
       {{ content }}
