@@ -13,10 +13,10 @@
     <header class="page-header" role="banner">
       <h1 class="project-name">{{ site.title | default: site.github.repository_name }}</h1>
       <h2 class="project-tagline">{{ site.description | default: site.github.project_tagline }}</h2>
-      <h2>{{ site.author | default: site.github.owner_name }}</h2>
+      <h2 class="project-tagline">{{ site.author | default: site.github.owner_name }}</h2>
 
       {% for entry in site.data.navigation %}
-        <a href="#" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
+        <a href="/{{ entry.url }}" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
       {% endfor %}
 
       {% if site.github.is_project_page %}
