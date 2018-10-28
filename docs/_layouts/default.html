@@ -16,7 +16,7 @@
       <h2 class="project-tagline">{{ site.author | default: site.github.owner_name }}</h2>
 
       {% for entry in site.data.navigation %}
-        <a href="/{{ entry.url }}" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
+        <a href="{{ site.github.url }}/{{ entry.url }}" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
       {% endfor %}
 
       {% if site.github.is_project_page %}
