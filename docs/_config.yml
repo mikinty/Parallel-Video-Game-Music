@@ -1,3 +1,4 @@
 theme: jekyll-theme-cayman
 title: Parallel-Generation for Anime Music
+author: Annie Xu and Michael You
 description: A parallel implementation of music generation using Markov chains and neural networks for the 15-418 Final Project (Fall 2018)
