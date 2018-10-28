@@ -15,16 +15,11 @@
           <h1>{{ site.title | default: site.github.repository_name }}</h1>
           <h3>{{ site.description | default: site.github.project_tagline }}</h3>
           <h2>{{ site.author | default: site.github.owner_name }}</h2>
-  
-          <section id="downloads">
-            <p>
-              {% for entry in site.data.navigation %}
-                <a href="#" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
-              {% endfor %}
-              <a href="{{ site.github.repository_url }}" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
-            </p>
-  
-          </section>
+      
+          {% for entry in site.data.navigation %}
+            <a href="#" class="btn" id="{{ entry.url }}" class="btn">{{ entry.title }}</a>
+          {% endfor %}
+          <a href="{{ site.github.repository_url }}" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
         </div>
       </header>
 
