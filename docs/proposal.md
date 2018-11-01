@@ -83,18 +83,18 @@ Using GPUs to perform our computation is a good choice, as training and Markov M
 
 ## Schedule
 
-| Dates | Goal | Description |
-| --- | --- | --- |
-| Nov 4 | Lit Review + Model | Learn about how MIDI is generated, and the various modifications to Markov Models and similar algorithms. Other research can include looking into video game music theory to properly determine the structure and rules we wish to follow. We want to decide on our model, determine why it works well, and what algorithm we will use to generate our music. |
+| Dates  | Goal | Description |
+| ---    | --- | --- |
+| Nov 4  | Lit Review + Model | Learn about how MIDI is generated, and the various modifications to Markov Models and similar algorithms. Other research can include looking into video game music theory to properly determine the structure and rules we wish to follow. We want to decide on our model, determine why it works well, and what algorithm we will use to generate our music. |
 | Nov 11 | Basic Parallel Alg. | Implement a CUDA program that generates matrices for our program. |
 | Nov 18 | Music Generation | Implement the music generation part of our project so we can play generated MIDI files using the matrices trained from last week. |
 | Nov 19 | Checkpoint | Summarize progress so far on project |
-| Dec 1 | Optimize Music Generation | Optimize the music generation algorithm. Explore the balance between parallelizing melodic lines and harmonious output. |
-| Dec 7 | Optimize Matrix Generation | Optimize the matric generation, to speedup training time. Graph and analyze performance. |
+| Dec 1  | Optimize Music Generation | Optimize the music generation algorithm. Explore the balance between parallelizing melodic lines and harmonious output. |
+| Dec 7  | Optimize Matrix Generation | Optimize the matrix generation, to speedup training time. Graph and analyze performance. |
 | Dec 14 | Wrap-up | Complete final report |
 | Dec 15 | Presentation | Practice presentation |
 
 ## Works Cited
 
-- Elowsson, A. and Friberg, A. “Algorhithmic Composition of Popular Music,” in Proceedings of the 12th International Conference on Music Perception and Cognition and the 8th Triennial Conference of the European Society for the Cognitive Sciences of Music, July 2012, pp 276-285
+- Elowsson, A. and Friberg, A. “Algorithmic Composition of Popular Music,” in Proceedings of the 12th International Conference on Music Perception and Cognition and the 8th Triennial Conference of the European Society for the Cognitive Sciences of Music, July 2012, pp 276-285
 - Dannenberg, R. (2018). Music Generation and Algorithmic Composition [Powerpoint slides]. Retrieved from http://www.cs.cmu.edu/~./music/cmsip/slides/05-algo-comp.pdf
