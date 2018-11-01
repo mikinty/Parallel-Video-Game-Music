@@ -25,12 +25,12 @@ In a Markov Model, multiple matrices are built from training data, or files of m
 
 Benefits of Parallelism per section:
 
-1. Matrix generation:
+1. **Matrix generation:**
     - Matrix entries could be computed in parallel, as there are dependencies between entries. Since most entries hold counts for the number of transitions between 2 notes (determined by the row and column), these counts will be independent when notes are different.
     - There will be many matrices for varying melodic lines — bass, melody, counter-melody, etc. These matrices can be computed in parallel.
     - Generating weights based on varying levels of context (number of previous notes) require multiple data lookups that could perhaps be done in parallel.
     - Training on multiple files can be read/processed in parallel, and then an overall reduction/sum may be performed in order to increase training performance.
-2. Music generation:
+2. **Music generation:**
     - Multiple melodic lines can be synthesized in parallel, allowing for faster generation of music, and perhaps leading to better performance. In addition, the increased speed, if significant, may allow for more complex or increased tempo in music generated.
 
 ## Challenge
