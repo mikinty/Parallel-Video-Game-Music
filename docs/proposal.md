@@ -21,7 +21,7 @@ In a Markov Model, multiple matrices are built from training data, or files of m
 
 ### Implementation
 
-![Figure showing overview](proposal/proposalFigExp.jpg "Implementation Overview")
+![Figure showing overview](diagrams/proposalFigExp.jpg "Implementation Overview")
 
 Benefits of Parallelism per section:
 
