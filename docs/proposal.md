@@ -5,12 +5,14 @@ layout: default
 # Proposal
 
 ## Summary
+
 We will generate video-game music using a Markov Model based algorithm, with parallel computation through GPUs for real-time music output. We will be analyzing speedup for two portions of the project:
 
   1. Matrix generation: building the Markov matrices that will be used for music generation
   2. Music generation: parallel synthesis of multiple melodic lines using the trained matrices from matrix generation
 
 ## Background
+
 Through the forms and rules outlined in music theory, humans already follow many rigid guidelines when composing music. Therefore, it seems natural to extend this technique to using an algorithmic composer. In particular, the genre of video game music, which is characterized by the overlapping of multiple melodic lines and a repetitive and structured format, seems ideal as a starting point for parallel algorithmic composers. The many melodic lines offer ample avenues for parallelization, allowing for parallel synthesis of different parts. In addition, the rigid structure makes such music easier to predict and generate with a Markov Model - resulting in higher quality and more harmonious music.
 
 The Markov Model of music generation was chosen for its popularity, good musical results, and ease of implementation, understanding, and parallelization. The model is easy to understand and implement, as it is based on using many probability matrices to determine the next notes of a melodic line. These matrices are easy to store and manipulate in many different programming contexts, including the GPUs we wish to use. Other music generation algorithms introduce too many new challenges, such as the recursive nature of Grammars (which may be difficult as it is not known beforehand how may recursions/threads we would need to spawn), or the poor music production of Structure and Probability techniques (Dannenberg, 2018). Finally, it has been shown that Markov Models produce good musical results, where computer compositions and human compositions had similar rankings in formal listening tests (Elowsson and Friderg, 2012). Therefore, a Markov Model would be the best choice both musically and implementation-wise.
@@ -18,9 +20,11 @@ The Markov Model of music generation was chosen for its popularity, good musical
 In a Markov Model, multiple matrices are built from training data, or files of music that fits the patterns and genre of the music we wish to create. Most commonly, this takes the form of counting the number of transitions from one note to another, and storing this count in a matrix. These matricies are then normalized and turned into probability matrices. For each melodic line, the algorithm uses the current (and perhaps some number of past) notes to determine the correct matrix and matrix row to look at. It then uses that matrix section to determine the next note, based on the probabilities in the matrix. Because the matrices are training on music of the same structure and genre, it is likely that the resulting melodies also follow the same structure and sound similar to the training pieces. THe resulting melodies are then combined and outputted through MIDI.
 
 ### Implementation
-Diagram 
+
+![Figure showing overview](proposal/proposalFigExp.jpg "Implementation Overview")
 
 Benefits of Parallelism per section:
+
 1. Matrix generation:
     - Matric entries could be computed in parallel, as there are independencies between entries. Since most entries hold counts for the number of transitions between 2 notes (determined by the row and column), these counts will be independent when notes are different.
     - There will be many matricies for varying melodic lines - bass, melody, counter-melody, etc. These matricies can be computed in parallel.
@@ -38,13 +42,14 @@ Although there are avenues for parallelization as seen above, music has many inh
 - **Conductor:** There must be something in charge of the overall direction of the music. This includes theme changes, dynamics, tempo, etc. This not only is many operations we have to keep track of in parallel, but also requires synchronization across all the threads being controlled by the conductor. E.g. if we transition from A to B theme, we need all the threads to be aware and transition at the same time. This creates many dependencies, and, in a shared memory model, a system of one writer and many readers to certain areas of memory.
 - **Melodic lines:** There are many melodic lines happening at the same time. Generating them quickly requires paralelism, but also in order to make the music sound good, we need to make sure that the melodic lines communicate with one another to preserve harmony, chord sequences, and style. Again, we see that the hamonious nature of music create dependencies between parallel portions of the algorithm, and we need to balance the two.
 
-
 ### Workload Characteristics
+
 - Memory Accesses: When we are generating melodic lines, related melodic lines will depend on one another - for example, bass lines will be dependent on each others' values in order to keep chords harmonious. Because of these relationships, there is some degree of locality. In addition, similar lines will access similar probability matrices. While acessing these matrice, since notes that are adjacent on the scale are more likely to be transitioned to, the lines may be accessing adjacent areas of the matrix over time. This is another area of locality. On the other hand, it is unlikely that the melodic line and the bass will need to access similar probability matrices, since they have very different structures and rules.
 - Commnuciation between lines: In order to maintain (music theory) and harmony, we need music generation threads to be aware of one another and make sure things are in check. This may result in a high communication to computation ratio, depending on how much communication is needed to keep chord and melodic lines harmonious. This is something we will be exploring during the project.
 - Communication from conductor: The conductor needs to be able to look at what everybody is doing at all times. The conductor will mostly be performing reads on other data, and writes to a global data structure containing values that other people care about and read from. There are challenges associated to reducing contention when the conductor tries to write to its global structure while many other threads are trying to read from it.
 
 ### Constraints and System Properties
+
 - CPU to GPU to CPU: In order to output music, the CPU must transmit the final MIDI messages after recieving the computational results from the GPU. Therefore, we must set up communication between the CPU host and the GPU kernel, where the GPU performs the computations and melodic line generation, but the CPU performs the actual translation into MIDI and output.
 - GPU computation: We need to figure out how to map our Markov model computations into CUDA and also how to convert the results into MIDI. We need to decide how to implement data structures and store the information needed to get good MIDI results.
 - Web packets: We have to package our MIDI data into a web packet that can be comprehended by our client. In order to produce music, we will need to transfer the data from GPUs on the Gates machines to our personal laptops or other music generating device. This will be done through web packets, and introduces challenges in sending/receiving data as well as latency control (as the music must sound continuous).
@@ -68,13 +73,16 @@ The demo will include speedup graphs that showcase the increased performance in 
 For the analysis componenet of our project, our algorithm will demonstrate significant speedup from utilizing GPUs, versus just using sequential code. This speedup may allow for more complex or faster-paced music generation. In addtion, we hope to determine the balance between synchronization of melodic lines and conductors and parallel synthesis. Questions we hope to answer include how much communication is necessary to produce (music theoretically valid) chords and harmonious sounding music, and how much synchronization and contraint a conductor places on music generation. Specifically, we hope to find quantitative ways to describe the balance between parallel synthesis of melodic lines and their interactions with each other and the conductor.
 
 ## Platform Choice
+
 We are planning to use the Thrust library on top of the C++ CUDA in order to write more efficient code. Thrust has significant performance benefits over C++, and also is easier to develop in, resulting in more productive development. In addition, the availability of MIDI APIs in C++ allow for us to use the same language in the final music output code.
 
 Using GPUs to perform our computation is a good choice, as training and Markov Models use:
+
 - **Matrix generation:** There are many elements of the matrix that can be computed in parallel, where each element does not require too much work.
 - **Matrix multiplication:** This is a well-known problem that parallelizes well on GPUs. Also, like matrix generation, there are many small problems that can be done in parallel, which works well on GPUs.
 
 ## Schedule
+
 | Dates | Goal | Description |
 | --- | --- | --- |
 | November 4 | Lit Review + Model | Learn about how MIDI is generated, and the various modifications to Markov Models and similar algorithms. Other research can include looking into video game music theory to properly determine the structure and rules we wish to follow. We want to decide on our model, determine why it works well, and what algorithm we will use to generate our music. |
@@ -85,6 +93,3 @@ Using GPUs to perform our computation is a good choice, as training and Markov M
 | December 7 | Optimize Matrix Generation | Optimize the matric generation, to speedup training time. Graph and analyze performance. |
 | December 14 | Wrap-up | Complete final report |
 | December 15 | Presentation | Practice presentation |
-
-
-THRUST
