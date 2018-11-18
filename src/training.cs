@@ -20,18 +20,19 @@ public static void ConvertMidiToText(string midiFilePath, string textFilePath)
     var midiFile = MidiFile.Read(midiFilePath);
     var channelSplit = MidiFile.SplitByChannel(midiFile);
 
-    foreach (var channelMidi in channelSplit)
+    for (int i = 0; i < channelSplit.Length; i++)
     {
+        var channelMidi = channelSplit[i];
         var shift = GetTranspose(channelMidi);
     	var avgNote = channelMidi.GetNotes().Average(n => n.NoteNumber);
     	var count = channelMidi.GetNotes().Length;
     
+        textFilePath = textFilePath + $"{i}.txt";
         File.AppendAllText(textFilePath, $"{avgNote} {count}\n");
 
 		File.AppendAllText(textFilePath,
                        	   channelMidi.GetNotes()
                                .Select(n => $"{n.NoteNumber + shift} {n.Time} {n.Length}"));
 
-		File.AppendAllText(textFilePath, "\n");
     }
 }
