@@ -8,7 +8,7 @@ import os
 import music21
 
 # Where MIDI files are located
-PATH = dir_path = os.path.dirname(os.path.realpath(__file__)) + '\MIDI'
+PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'MIDI')
 os.chdir(PATH)
 
 # Key conversions
