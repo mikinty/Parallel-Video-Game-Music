@@ -69,7 +69,7 @@ Another stretch goal would be to demonstrate the feasibility of using parallel c
 
 ## Updated Demo Plan
 
-The demo will be the same as originally stated. There will be speedup graphs that showcase the increased performance in utilizing GPUs over using sequential code. In addition, we will have live music generation during the demo that showcases our fast, parallel algorithm still produces music that retains harmony. The combination of melodious music and speedup graphs shows our understanding of the balance between dependencies in music and our parallel algorithm. In addition, we will show the client interface that allows for global setting initialization, to show the range of music that can be generated.
+The demo will be the same as originally stated. There will be speedup graphs that showcase the increased performance in utilizing GPUs over using sequential code. In addition, we will have live music generation during the demo that showcases our fast, parallel algorithm still produces music that retains harmony. The combination of melodious music and speedup graphs shows our understanding of the balance between dependencies in music and our parallel algorithm. In addition, we will allow people to try out our client interface that can request new music to be generated from the server. The various settings that can be tuned on the client interface will demonstrate the versatility of our algorithm, and the real-time demo will show the practicality and speed of our algorithm.
 
 ## Remaining Challenges
 
