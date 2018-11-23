@@ -14,14 +14,7 @@ os.chdir(PATH)
 # Constant
 QUARTERNOTE = 1
 
-# Convert files
-for f in glob.glob("**\*.mid", recursive=True):
-  score = music21.converter.parse(f)
-  
+f='Basic/ff1menu.mid'
 
+score = music21.converter.parse(f)
 
-  # normalize time
-  #newFileName = f
-  #newscore.write('midi', newFileName)
-
-print("Done converting files")
