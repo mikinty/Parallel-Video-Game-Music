@@ -10,14 +10,15 @@ $background-color: #00171F;
 $footer-color: #003459;
 $details-color: #00A7E1;
 $font-color: #FAFAFA;
+$checked-color: rgb(180, 4, 250);
 $submit-color: #00CC73;
 $submit-color-darker: #00824A;
 
 /* Form Styles */
 
 .form {
-	max-width: 610px;
-	margin: 60px auto;
+	width: 100%;
+  margin: 20px;
 }
 
 .form__header {
@@ -104,7 +105,7 @@ input[type="radio"]:active ~ label {
 
 input[type="radio"]:checked ~ label {
   opacity: 1;
-	border: 1px solid $font-color;
+	border: 1px solid $checked-color;
 }
 
 

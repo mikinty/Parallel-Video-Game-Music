@@ -24,7 +24,7 @@ export default class RadioSelect extends React.Component {
       <div className="form">      
       <form>
         <fieldset className="form__options">
-          <legend className="form__question">What is your ideal match?</legend>
+          <legend className="form__question">Choose your genre:</legend>
 
           <p className="form__answer"> 
             <input 
