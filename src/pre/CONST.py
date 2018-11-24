@@ -1,7 +1,13 @@
 # Constants for process.py
 
 STARTCODE = 'S'
-ENDCODE = 'S'
+ENDCODE = 'E'
+
+SOPRANOMARK = 'H' # high
+BASSMARK = 'L' # low
+
+CHORDMARK = 'K'
+RESTMARK = 'R'
 
 # Key conversions from C
 majors = dict([
@@ -54,4 +60,5 @@ minors = dict([
 ])
 
 # Soprano, Treble, Tenor, Bass cutoffs
-# TODO
+# Currrently only dividing between Soprano and Bass
+MIDDLENOTE = 'C4'
