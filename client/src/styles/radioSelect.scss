@@ -1,0 +1,26 @@
+// hide ugly circles
+input[type=radio] {
+  display: none;
+}
+
+// Radio labels
+.radioOption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100px;
+  height: 40px;
+
+  border: 1px solid white;
+
+  margin: 10px;
+
+  cursor: pointer;
+
+  transition-duration: 0.5s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}

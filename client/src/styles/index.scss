@@ -1,0 +1,26 @@
+@import 'playButton';
+@import 'radioSelect';
+
+html, body {
+  font-family: 'Lucida Grande', 'Calibri', Helvetica, Arial, sans-serif;
+  color: white;
+  margin: 0;
+  height: 100%;
+  background-color: black;
+}
+
+.bg {
+  height: 100%;
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
