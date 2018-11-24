@@ -12,7 +12,7 @@ import music21
 import glob
 
 # Convert files in directory
-for f in glob.glob("TEST\*.mid", recursive=True):
+for f in glob.glob("TEST\**\*.mid", recursive=True):
   print('Converting', f)
 
   # output file
@@ -40,12 +40,19 @@ for f in glob.glob("TEST\*.mid", recursive=True):
 
   # Print parts
   for part in score.parts:
-    print(STARTCODE, file=fo)
-    print(str(part.getInstrument()), file=fo)
-
     # Find most common note
     l = [e.pitch for e in part.notes if e.isNote]
-    m = max(set(l), key=l.count)
+    c = [e.pitches[0] for e in part.notes if e.isChord]
+    L = l+c
+
+    # somehow have no elements in this part...
+    if len(L) == 0:
+      continue
+    
+    m = max(set(L), key=L.count)
+
+    print(STARTCODE, file=fo)
+    print(str(part.getInstrument()), file=fo)
 
     # case on the most common pitch
     if m < music21.pitch.Pitch(MIDDLENOTE):
@@ -66,7 +73,7 @@ for f in glob.glob("TEST\*.mid", recursive=True):
 
     print(ENDCODE, file=fo)
   
-  
+  fo.close()
   print('Saved', newFileName)
 
 print("Done converting files")
