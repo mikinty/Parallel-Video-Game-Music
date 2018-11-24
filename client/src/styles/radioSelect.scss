@@ -17,8 +17,7 @@ $submit-color-darker: #00824A;
 /* Form Styles */
 
 .form {
-	width: 100%;
-  margin: 20px;
+	width: 80%;
 }
 
 .form__header {
@@ -49,7 +48,6 @@ $submit-color-darker: #00824A;
 	box-sizing: border-box;
 	width: 19%;
 	margin: 20px 1% 20px 0;
-	height: 180px;
 	vertical-align: top;
 	font-size: 22px;
 	text-align: center; 
@@ -59,7 +57,6 @@ label {
 	border: 1px solid rgba($font-color,.15);
 	box-sizing: border-box;
 	display: block;
-	height: 100%;
 	width: 100%;
 	padding: 10px 10px 30px 10px;
 	cursor: pointer;
@@ -105,7 +102,7 @@ input[type="radio"]:active ~ label {
 
 input[type="radio"]:checked ~ label {
   opacity: 1;
-	border: 1px solid $checked-color;
+	border: 2px solid $checked-color;
 }
 
 

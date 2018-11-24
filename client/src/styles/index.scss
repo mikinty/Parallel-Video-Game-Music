@@ -17,10 +17,22 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 20px;
 }
 
 .title {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  h1 {
+    font-size: 72px;
+  }
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px;
 }
