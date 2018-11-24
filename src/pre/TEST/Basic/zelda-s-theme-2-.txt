@@ -56,7 +56,7 @@ A3 1.000
 E
 S
 StringInstrument
-L
+H
 K G4 3.000
 K E4 3.000
 R 3.000
