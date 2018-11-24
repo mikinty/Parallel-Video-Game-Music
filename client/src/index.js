@@ -18,11 +18,14 @@ ReactDOM.render(
       <RadioSelect />
     </div>
 
+    {/*
+    
     <div className='buttons'>
       <a id="play-video" className="video-play-button" href="#">
         <span></span>
       </a>
     </div>
+    */}
     
   </div>,
   document.getElementById('app')

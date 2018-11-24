@@ -1,26 +1,151 @@
-// hide ugly circles
-input[type=radio] {
-  display: none;
+
+/* Font from Google fonts */
+
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,900');
+
+
+/* Color palette */
+
+$background-color: #00171F;
+$footer-color: #003459;
+$details-color: #00A7E1;
+$font-color: #FAFAFA;
+$submit-color: #00CC73;
+$submit-color-darker: #00824A;
+
+/* Form Styles */
+
+.form {
+	max-width: 610px;
+	margin: 60px auto;
 }
 
-// Radio labels
-.radioOption {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.form__header {
+	margin-bottom: 40px;
+	border-bottom: 1px dashed rgba($font-color,.15);
+}
 
-  width: 100px;
-  height: 40px;
+.form__title {
+	font-size: 45px;
+	margin: 10px 0;
+}
 
-  border: 1px solid white;
+.form__instruction {
+	font-size: 22px;
+}
 
-  margin: 10px;
+.form__options {
+	border: none;
+	padding: 0;
+}
 
-  cursor: pointer;
+.form__question {
+	font-size: 25px;
+}
 
-  transition-duration: 0.5s;
+.form__answer {
+	display: inline-block;
+	box-sizing: border-box;
+	width: 19%;
+	margin: 20px 1% 20px 0;
+	height: 180px;
+	vertical-align: top;
+	font-size: 22px;
+	text-align: center; 
+}
 
-  &:hover {
-    opacity: 0.8;
-  }
+label {
+	border: 1px solid rgba($font-color,.15);
+	box-sizing: border-box;
+	display: block;
+	height: 100%;
+	width: 100%;
+	padding: 10px 10px 30px 10px;
+	cursor: pointer;
+	opacity: .5;
+	transition: all .5s ease-in-out;
+	&:hover, &:focus, &:active {
+		border: 1px solid rgba($font-color,.5);
+	}
+}
+
+.form__button {
+	height: 40px;
+	border: none;
+	background-color: $submit-color;
+	color: $font-color;
+	text-transform: uppercase;
+	font-family: 'Source Sans Pro', sans-serif;
+	padding: 0 20px;
+	border-radius: 20px;
+	font-weight: 900;
+	cursor: pointer;
+	margin: 20px 0;
+	transition: all .25s ease-in-out;
+	&:hover, &:focus {
+		background-color: $submit-color-darker;
+		text-shadow: 1px 1px 1px rgba(0,0,0,.25);
+		outline: none;
+	}
+}
+
+
+/* Input style */
+
+input[type="radio"] {
+	opacity: 0;
+	width: 0;
+  height: 0;
+}
+
+input[type="radio"]:active ~ label {
+  opacity: 1;
+}
+
+input[type="radio"]:checked ~ label {
+  opacity: 1;
+	border: 1px solid $font-color;
+}
+
+
+/* Footer Styles */
+
+footer {
+	background-color: $footer-color;
+	position: relative;
+	padding: 20px;
+	h2, h3, p, ul {
+		max-width: 610px;
+		margin: 20px auto;
+	}
+}
+
+.footer__title {
+	font-size: 30px;
+	margin-top: 40px;
+	color: $background-color;
+}
+
+.footer__subtitle {
+	font-size: 22px;
+}
+
+.footer__parragraph {
+	line-height: 1.5em;
+	font-size: 22px;
+	a {
+		color: $details-color;
+	}
+}
+
+.footer__list {
+	@extend .footer__parragraph;
+}
+
+.copyright {
+	@extend .footer__parragraph;
+	text-align: center;
+	border-top: 1px dashed rgba($font-color,.15);
+	padding: 10px 0;
+	margin: 40px auto;
 }
