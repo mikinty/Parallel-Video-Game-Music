@@ -16,9 +16,9 @@ $buttonColorHover: rgb(180, 4, 250); //rgb(115, 151, 248);
 }
 
 .playBut {
-/*  border: 1px solid red;*/
   display: inline-block;
   transition: all 0.5s ease;
+  cursor: pointer;
   
   .triangle {
     transition: all 0.7s ease-in-out;
