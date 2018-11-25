@@ -1,10 +1,6 @@
 import React from 'react';
 
 export default class RadioSelect extends React.Component {
-  constructor () {
-    super();
-  }
-
   // Called when we click play
   handleClick () {
     console.log('Clicked button!');
