@@ -67,7 +67,7 @@ for f in glob.glob("TEST\**\*.mid", recursive=True):
         for p in e.pitches:
           print(CHORDMARK, str(p), d, file=fo)
       if e.isNote:
-          print(e.pitch, d, file=fo)
+          print(e.pitch.diatonicNoteNum, d, file=fo)
       else:
           print(RESTMARK, d, file=fo)
 
