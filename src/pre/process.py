@@ -84,13 +84,16 @@ for f in glob.glob("TEST\**\*.mid", recursive=True):
     
         # we MUST offset in order to account for notes and rests
         n += CHORD_OFFSET
-          
+
       # NOTE. Encoded from 0 (c0) to 95 (b7)
       elif e.isNote:
         n = int(e.pitch.ps) - LOWEST_NOTE_OFFSET
         
+        # bring note up into range
         if n < 0:
-          n = n % NOTE_RANGE
+          n = n % OCTAVE_RANGE
+
+        # highest note we can give in range
         elif n >= NOTE_RANGE:
           n = n % OCTAVE_RANGE + HIGHEST_C
           
