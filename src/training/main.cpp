@@ -8,29 +8,29 @@
 using namespace std;
 
 void outputMatrices(double* highNotes, double* lowNotes, double* chords){
-	ofstream outFile;
-	outFile.open ("highMatrix.txt");
+	std::ofstream outFile;
+	outFile.open("highMatrix.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
-			outFile << highNotes[i * NUM_NOTES + j];
+			outFile << highNotes[i * NUM_NOTES + j] << " ";
 		}
 		outFile << "\n";
 	}
 	outFile.close();
 
-	outFile.open ("lowMatrix.txt");
+	outFile.open("lowMatrix.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
-			outFile << lowNotes[i * NUM_NOTES + j];
+			outFile << lowNotes[i * NUM_NOTES + j] << " ";
 		}
 		outFile << "\n";
 	}
 	outFile.close();
 
-	outFile.open ("chordMatrix.txt");
+	outFile.open("chordMatrix.txt");
 	for (int i = 0; i < NUM_CHORDS; i ++){
 		for (int j = 0; j < NUM_CHORDS; j++){
-			outFile << chords[i * NUM_CHORDS + j];
+			outFile << chords[i * NUM_CHORDS + j] << " ";
 		}
 		outFile << "\n";
 	}
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
     	countTransitionsCuda(soprano, bass, deviceHigh, deviceLow, deviceChord);
     }
 
-    normalizeCuda(deviceHigh, sLen, deviceLow, bLen, deviceChord, highNotes, lowNotes, chords);
+    normalizeCuda(deviceHigh, deviceLow, deviceChord, highNotes, lowNotes, chords);
 
     outputMatrices(highNotes, lowNotes, chords);
 
