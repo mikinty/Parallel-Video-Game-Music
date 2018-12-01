@@ -1,4 +1,4 @@
-#define NUM_TONES 72
+#define NUM_TONES 73
 #define NUM_CHORDS 1728
 #define NUM_DUR 15
 /* All chord numbers are offsetted by +101 */

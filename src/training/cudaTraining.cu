@@ -17,29 +17,34 @@
 #include <thrust/sequence.h>
 
 //Transforms 2 (noteTone, noteLength) pairs to a matrix index
-static inline int findNoteCell(int tone, int length, int tone1, int length1, int tone2, int length2)
+static inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2)
 {
-  // current noote 
-	int col = tone * length - 1;
+  // current note 
+  int col = curTone * curDur - 1;
 
-  // TODO: find closest note
-  if (tone1 > NUM_TONES){
-      tone1 = tone1 % 12; //get bottom chord note
+  //If previous tones are chords, get top note and find closest
+  if (prevTone1 > NUM_TONES){
+      prevTone1 = prevTone1 / 144; //get top chord note
+      prevTone1 = curTone - (curTone % 12) + prevTone1;
   }
-  if (tone2 > NUM_TONES){
-      tone2 = tone2 % 12 - NUM_TONES; //get bottom chord note
+  if (prevTone2 > NUM_TONES){
+      prevTone2 = prevTone2 / 144; //get top chord note
+      prevTone2 = curTone - (curTone % 12) + prevTone2;
   }
-  int row = tone1 * length1 * tone2 * length2 - 1;
+
+  int row = prevTone1 * prevDur1 * prevTone2 * prevDur2 - 1;
+
   return row * NUM_NOTES + col;
 }
 
 //Gets flattened matrix index
-// rename arg names
-static inline int findChordCell(int tone, int tone1){
-	if (tone1 > NUM_TONES){
-        tone1 = tone1 - NUM_TONES - 1; //shift chord down
-    }
-    return tone1 * NUM_CHORDS + tone1;
+static inline int findChordCell(int curTone, int prevTone){
+	
+  if (prevTone > NUM_TONES){
+        prevTone = prevTone - NUM_TONES - 1; //shift chord down
+  }
+  
+  return prevTone * NUM_CHORDS + (curTone - NUM_TONES - 1);
 }
 
 __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int bLength,float* deviceHigh,float* deviceLow,float* deviceChord)
@@ -80,30 +85,29 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
     }
 
     int prevTone1 = part[start-2].tone;
-    int prevLength1 = part[start-2].duration;
+    int prevDur1 = part[start-2].duration;
     int curTone = part[start-1].tone;
-    int curLength = part[start-1].duration;
+    int curDur = part[start-1].duration;
 
     __syncthreads();
 
     for (int noteIndex = start; noteIndex < end; noteIndex++){    	
     	int prevTone2 = prevTone1;
-    	int prevLength2 = prevLength1;
+    	int prevDur2 = prevDur1;
     	prevTone1 = curTone;
-        prevLength1 = curLength;
+        prevDur1 = curDur;
         curTone = part[noteIndex].tone;
-        curLength = part[noteIndex].duration;
+        curDur = part[noteIndex].duration;
 
         int cell;
-        // TODO: consider rests into the types of notes
         if (curTone > NUM_TONES) { //insert into chord matrix
             cell = findChordCell(curTone, prevTone1);
             atomic_add(deviceChord[cell], 1);
         }
         else { 
           //insert into melody note matrix
-            cell = findNoteCell(curTone, curLength, prevTone1, prevLength1, prevTone2, prevLength2);
-            atomic_add(melodyM[cell], 1);
+          cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
+          atomic_add(melodyM[cell], 1);
         }
     }
 
@@ -116,27 +120,31 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
         if (mIndex > NUM_NOTES * NUM_NOTES * NUM_NOTES)
             break;
         if (blockIdx.x == 0)
-            deviceHigh[mIndex] = melodyM[mIndex];
+            deviceHigh[mIndex] += melodyM[mIndex];
         else
-            deviceLow[mIndex] = melodyM[mIndex];
+            deviceLow[mIndex] += melodyM[mIndex];
     }
     
 }
 
-// TODO: INIT FUNCTION 
+void initCuda(float* deviceHigh, float* deviceLow, float* deviceChord, sound_t* deviceS, sound_t* deviceB)
+{
+  cudaMalloc((void**)&deviceHigh, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
+  cudaMalloc((void**)&deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
+  cudaMalloc((void**)&deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS); 
+
+  cudaMemset(deviceChord, 0, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
+  cudaMemset(deviceLow, 0, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
+  cudaMemset(deviceHigh, 0, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
+
+  __syncthreads();
+}
+
 // TODO: FREE FUNCTION / CLEANUP
 void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, float* deviceHigh, float* deviceLow, float* deviceChord){
-    cudaMalloc((void**)&deviceHigh, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
-    cudaMalloc((void**)&deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
-    cudaMalloc((void**)&deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
-
-  // TODO: we need to read from existing matrix
-  cudaMemset(deviceChord, 0, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
 
   sound_t* deviceS;
   sound_t* deviceB;
-
-  // TODO:don't cudaMalloc every single time 
   cudaMalloc((void **)&deviceS, sizeof(sound_t) * sLength);
   cudaMemcpy(deviceS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
   cudaMalloc((void **)&deviceB, sizeof(sound_t) * bLength);
@@ -288,7 +296,7 @@ void normalizeCuda(float* deviceHigh,float* deviceLow,float* deviceChord,float* 
     cudaMemcpy(lowNotes, deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
     cudaMemcpy(chords, deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
 
-  // TODO: sync stuff ehre
+    __syncthreads();
 
     cudaFree(deviceHigh);
     cudaFree(deviceLow);
