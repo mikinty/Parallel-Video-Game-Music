@@ -4,17 +4,17 @@ START_CODE = 'S'
 END_CODE = 'E'
 ENDFILE_CODE = 'X'
 
-LOWEST_NOTE_OFFSET = 12
-NOTE_RANGE = 96 # number of distinct notes defined
+LOWEST_NOTE_OFFSET = 24
+NOTE_RANGE = 72 # number of distinct notes defined
 OCTAVE_RANGE = 12 # number of half-steps in an octave
-HIGHEST_C_RAW = 96
+HIGHEST_C_RAW = 84 # C6
 HIGHEST_C = HIGHEST_C_RAW - LOWEST_NOTE_OFFSET
 
 SOPRANO_MARK = 'H' # high
 BASS_MARK = 'L' # low
 
 CHORD_OFFSET = 101
-REST_NUM = 100
+REST_NUM = 72
 
 # Note durations that we support
 NOTE_DURATIONS = [
