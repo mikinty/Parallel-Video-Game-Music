@@ -38,12 +38,12 @@ static inline int findChordCell(int tone, int tone1){
     return tone1 * NUM_CHORDS + tone1;
 }
 
-__global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int bLength,double* deviceHigh,double* deviceLow,double* deviceChord)
+__global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int bLength,float* deviceHigh,float* deviceLow,float* deviceChord)
 {
     sound_t* part;
     int start;
     int end;
-    __shared__ double melodyM[NUM_NOTES * NUM_NOTES * NUM_NOTES];
+    __shared__ float melodyM[NUM_NOTES * NUM_NOTES * NUM_NOTES];
 
     //initialize shared mem
     start = threadIdx.x * (NUM_NOTES * NUM_NOTES * NUM_NOTES + NUM_THREADS - 1)/NUM_THREADS;
@@ -116,12 +116,12 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
     
 }
 
-void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, double* deviceHigh, double* deviceLow, double* deviceChord){
-    cudaMalloc((void**)&deviceHigh, sizeof(double) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
-    cudaMalloc((void**)&deviceLow, sizeof(double) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
-    cudaMalloc((void**)&deviceChord, sizeof(double) * NUM_CHORDS * NUM_CHORDS);
+void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, float* deviceHigh, float* deviceLow, float* deviceChord){
+    cudaMalloc((void**)&deviceHigh, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
+    cudaMalloc((void**)&deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
+    cudaMalloc((void**)&deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
 
-    cudaMemset(deviceChord, 0, sizeof(double) * NUM_CHORDS * NUM_CHORDS);
+    cudaMemset(deviceChord, 0, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
 
     sound_t* deviceS;
     sound_t* deviceB;
@@ -138,17 +138,7 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
     cudaFree(deviceB);
 }
 
-
-
-template<typename T>
-struct MulC: public thrust::unary_function<T, T>
-{
-    T C;
-    __host__ __device__ MulC(T c) : C(c) { }
-    __host__ __device__ T operator()(T x) { return x * C; }
-};
-
-__global__ void normalizeRow(double* deviceHigh,double* deviceLow,double* deviceChord){
+__global__ void normalizeRow(float* deviceHigh,float* deviceLow,float* deviceChord){
     int start;
     int end;
     if(blockIdx.x == 0){
@@ -201,30 +191,86 @@ __global__ void normalizeRow(double* deviceHigh,double* deviceLow,double* device
     }
 }
 
+template <typename T>
+struct linear_index_to_row_index : public thrust::unary_function<T,T> {
 
-void normalizeCuda(double* deviceHigh,double* deviceLow,double* deviceChord,double* highNotes,double* lowNotes,double* chords){
+    T Ncols; // --- Number of columns
+
+    __host__ __device__ linear_index_to_row_index(T Ncols) : Ncols(Ncols) {}
+
+    __host__ __device__ T operator()(T i) { return i / Ncols; }
+};
+
+void normalizeCuda(float* deviceHigh,float* deviceLow,float* deviceChord,float* highNotes,float* lowNotes,float* chords){
  
-   /* thrust::device_vector<float> d_row_sums_3(Nrows, 0);
-    thrust::device_vector<float> d_temp(Nrows * Ncols);
-    thrust::inclusive_scan_by_key(
+    int Nrows = NUM_NOTES * NUM_NOTES;
+    int Ncols = NUM_NOTES;
+
+    thrust::device_ptr<float> thrust_high(deviceHigh);
+    // --- Allocate space for row sums and indices
+    thrust::device_vector<float> d_row_sums(Nrows);
+    thrust::device_vector<int> d_row_indices(Nrows);
+
+    // --- Compute row sums by summing values with equal row indices
+    thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
+                        thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
+                        thrust_high,
+                        d_row_indices.begin(),
+                        d_row_sums.begin(),
+                        thrust::equal_to<int>(),
+                        thrust::plus<float>());
+
+    thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                d_matrix.begin(),
-                d_temp.begin());
-    thrust::copy(
-                thrust::make_permutation_iterator(
-                        d_temp.begin() + Ncols - 1,
-                        thrust::make_transform_iterator(thrust::make_counting_iterator(0), MulC<int>(Ncols))),
-    thrust::make_permutation_iterator(
-                        d_temp.begin() + Ncols - 1,
-                        thrust::make_transform_iterator(thrust::make_counting_iterator(0), MulC<int>(Ncols))) + Nrows,
-                d_row_sums_3.begin()); */
+                thrust_high,
+                thrust::make_discard_iterator(),
+                d_row_sums.begin());
 
-    normalizeRow<<<NUM_THREADS, 3>>>(deviceHigh, deviceLow, deviceChord);
+    thrust::device_ptr<float> thrust_low(deviceLow);
 
-    cudaMemcpy(highNotes, deviceHigh, sizeof(double) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
-    cudaMemcpy(lowNotes, deviceLow, sizeof(double) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
-    cudaMemcpy(chords, deviceChord, sizeof(double) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
+    // --- Compute row sums by summing values with equal row indices
+    thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
+                        thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
+                        thrust_low,
+                        d_row_indices.begin(),
+                        d_row_sums.begin(),
+                        thrust::equal_to<int>(),
+                        thrust::plus<float>());
+
+    thrust::reduce_by_key(
+                thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
+                thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
+                thrust_low,
+                thrust::make_discard_iterator(),
+                d_row_sums.begin());
+
+    Nrows = NUM_CHORDS;
+    Ncols = NUM_CHORDS;
+
+    thrust::device_ptr<float> thrust_chord(deviceChord);
+    thrust::device_vector<float> d_row_sums_c(Nrows);
+    thrust::device_vector<int> d_row_indices_c(Nrows);
+
+    // --- Compute row sums by summing values with equal row indices
+    thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
+                        thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
+                        thrust_chord,
+                        d_row_indices_c.begin(),
+                        d_row_sums_c.begin(),
+                        thrust::equal_to<int>(),
+                        thrust::plus<float>());
+
+    thrust::reduce_by_key(
+                thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
+                thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
+                thrust_chord,
+                thrust::make_discard_iterator(),
+                d_row_sums_c.begin());
+
+    cudaMemcpy(highNotes, deviceHigh, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
+    cudaMemcpy(lowNotes, deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
+    cudaMemcpy(chords, deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
 
     cudaFree(deviceHigh);
     cudaFree(deviceLow);

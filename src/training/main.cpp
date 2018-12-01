@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void outputMatrices(double* highNotes, double* lowNotes, double* chords){
+void outputMatrices(float* highNotes, float* lowNotes, float* chords){
 	std::ofstream outFile;
 	outFile.open("highMatrix.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
@@ -35,28 +35,31 @@ void outputMatrices(double* highNotes, double* lowNotes, double* chords){
 		outFile << "\n";
 	}
 	outFile.close();
+
+    free(highNotes);
+    free(lowNotes);
+    free(chords);
 }
 
 int main(int argc, char** argv)
 {
     //Set up all final matrices
-    double* highNotes = malloc(sizeof(double) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-    double* lowNotes =  malloc(sizeof(double) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-    double* chords =  malloc(sizeof(double) * (NUM_CHORDS * NUM_CHORDS));
+    float* highNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+    float* lowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+    float* chords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
 
-    double* deviceHigh;
-    double* deviceLow;
-    double* deviceChord;
+    float* deviceHigh;
+    float* deviceLow;
+    float* deviceChord;
 
 	sound_t* soprano = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH); //set up notes array
 	sound_t* bass = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
-
-	int maxLen = INIT_ARRAY_LENGTH;
-    int sLen = 0;
-    int bLen = 0;
+    int maxLen = INIT_ARRAY_LENGTH;
 
 	//Read given files
 	for(int fileIndex = 0; fileIndex < argc; fileIndex++){
+        int sLen = 0;
+        int bLen = 0;
 		std::string fileLine;
 		int currentPart;
     	std::ifstream file(argv[fileIndex]);
@@ -92,6 +95,9 @@ int main(int argc, char** argv)
     	}
     	countTransitionsCuda(soprano, bass, deviceHigh, deviceLow, deviceChord);
     }
+
+    free(soprano);
+    free(bass);
 
     normalizeCuda(deviceHigh, deviceLow, deviceChord, highNotes, lowNotes, chords);
 
