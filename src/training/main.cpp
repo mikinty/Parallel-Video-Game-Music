@@ -8,6 +8,10 @@
 using namespace std;
 
 void outputMatrices(float* highNotes, float* lowNotes, float* chords){
+  // TODO:
+  // don't just open old matrix. make new one and write into that. 
+  // After done, rename to old file name (and delete old file)
+
 	std::ofstream outFile;
 	outFile.open("highMatrix.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
@@ -41,22 +45,23 @@ void outputMatrices(float* highNotes, float* lowNotes, float* chords){
     free(chords);
 }
 
-int main(int argc, char** argv)
-{
-    //Set up all final matrices
-    float* highNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-    float* lowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-    float* chords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
+int main(int argc, char** argv) {
+  //Set up all final matrices
+  float* highNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  float* lowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  float* chords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
 
-    float* deviceHigh;
-    float* deviceLow;
-    float* deviceChord;
+  float* deviceHigh;
+  float* deviceLow;
+  float* deviceChord;
 
+  // 1000-length ones you send to device
 	sound_t* soprano = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH); //set up notes array
 	sound_t* bass = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
     int maxLen = INIT_ARRAY_LENGTH;
 
-	//Read given files
+  // Pass in files through args
+	// Read given files
 	for(int fileIndex = 0; fileIndex < argc; fileIndex++){
         int sLen = 0;
         int bLen = 0;
@@ -67,8 +72,11 @@ int main(int argc, char** argv)
     		std::cerr << "Cannot open file : " <<argv[fileIndex]<<std::endl;
     		return false;
     	}
+
     	std::size_t found;
     	while(std::getline(file, fileLine)){
+        // TODO: detect major minor
+
     		if (fileLine.find('H') != std::string::npos) { //Set correct part
                 currentPart = 1;
     		}
@@ -86,6 +94,7 @@ int main(int argc, char** argv)
     				soprano[sLen].duration = stoi(fileLine.substr(found+1));
     				sLen ++;
     			}
+
     			if (bLen >= maxLen || sLen >= maxLen){
     				maxLen = maxLen * 2;
     				soprano = realloc(soprano, sizeof(sound_t) * maxLen);
@@ -93,12 +102,14 @@ int main(int argc, char** argv)
     			}
     		}
     	}
+      // pass slen and bLen
     	countTransitionsCuda(soprano, bass, deviceHigh, deviceLow, deviceChord);
     }
 
     free(soprano);
     free(bass);
 
+    // normalize the transition matrix
     normalizeCuda(deviceHigh, deviceLow, deviceChord, highNotes, lowNotes, chords);
 
     outputMatrices(highNotes, lowNotes, chords);

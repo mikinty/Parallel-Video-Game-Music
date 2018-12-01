@@ -19,18 +19,22 @@
 //Transforms 2 (noteTone, noteLength) pairs to a matrix index
 static inline int findNoteCell(int tone, int length, int tone1, int length1, int tone2, int length2)
 {
+  // current noote 
 	int col = tone * length - 1;
-    if (tone1 > NUM_TONES){
-        tone1 = tone1 % 12 - NUM_TONES; //get bottom chord note
-    }
-    if (tone2 > NUM_TONES){
-        tone2 = tone2 % 12 - NUM_TONES; //get bottom chord note
-    }
-    int row = tone1 * length1 * tone2 * length2 - 1;
-    return row * NUM_NOTES + col;
+
+  // TODO: find closest note
+  if (tone1 > NUM_TONES){
+      tone1 = tone1 % 12; //get bottom chord note
+  }
+  if (tone2 > NUM_TONES){
+      tone2 = tone2 % 12 - NUM_TONES; //get bottom chord note
+  }
+  int row = tone1 * length1 * tone2 * length2 - 1;
+  return row * NUM_NOTES + col;
 }
 
 //Gets flattened matrix index
+// rename arg names
 static inline int findChordCell(int tone, int tone1){
 	if (tone1 > NUM_TONES){
         tone1 = tone1 - NUM_TONES - 1; //shift chord down
@@ -91,11 +95,13 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
         curLength = part[noteIndex].duration;
 
         int cell;
+        // TODO: consider rests into the types of notes
         if (curTone > NUM_TONES) { //insert into chord matrix
             cell = findChordCell(curTone, prevTone1);
             atomic_add(deviceChord[cell], 1);
         }
-        else (blockIdx.x == 0) { //insert into soprano note matrix
+        else { 
+          //insert into melody note matrix
             cell = findNoteCell(curTone, curLength, prevTone1, prevLength1, prevTone2, prevLength2);
             atomic_add(melodyM[cell], 1);
         }
@@ -103,6 +109,7 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
 
     __syncthreads();
 
+  // copy shared mem matrix into the global
     start = threadIdx.x * (NUM_NOTES * NUM_NOTES * NUM_NOTES + NUM_THREADS - 1)/NUM_THREADS;
     end = start + (NUM_NOTES * NUM_NOTES * NUM_NOTES + NUM_THREADS - 1)/NUM_THREADS;
     for (int mIndex = start; mIndex < end; mIndex++){
@@ -116,26 +123,32 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
     
 }
 
+// TODO: INIT FUNCTION 
+// TODO: FREE FUNCTION / CLEANUP
 void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, float* deviceHigh, float* deviceLow, float* deviceChord){
     cudaMalloc((void**)&deviceHigh, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
     cudaMalloc((void**)&deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
     cudaMalloc((void**)&deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
 
-    cudaMemset(deviceChord, 0, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
+  // TODO: we need to read from existing matrix
+  cudaMemset(deviceChord, 0, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
 
-    sound_t* deviceS;
-    sound_t* deviceB;
-    cudaMalloc((void **)&deviceS, sizeof(sound_t) * sLength);
-    cudaMemcpy(deviceS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
-    cudaMalloc((void **)&deviceB, sizeof(sound_t) * bLength);
-    cudaMemcpy(deviceB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
+  sound_t* deviceS;
+  sound_t* deviceB;
 
-    CountSection<<<NUM_THREADS, 2>>>(deviceS, sLength, deviceB, bLength, deviceHigh, deviceLow, deviceChord);
+  // TODO:don't cudaMalloc every single time 
+  cudaMalloc((void **)&deviceS, sizeof(sound_t) * sLength);
+  cudaMemcpy(deviceS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
+  cudaMalloc((void **)&deviceB, sizeof(sound_t) * bLength);
+  cudaMemcpy(deviceB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
 
-    cudaThreadSynchronize();
+  CountSection<<<NUM_THREADS, 2>>>(deviceS, sLength, deviceB, bLength, deviceHigh, deviceLow, deviceChord);
 
-    cudaFree(deviceS);
-    cudaFree(deviceB);
+  cudaThreadSynchronize();
+
+  // free file buffers
+  cudaFree(deviceS);
+  cudaFree(deviceB);
 }
 
 __global__ void normalizeRow(float* deviceHigh,float* deviceLow,float* deviceChord){
@@ -201,6 +214,9 @@ struct linear_index_to_row_index : public thrust::unary_function<T,T> {
     __host__ __device__ T operator()(T i) { return i / Ncols; }
 };
 
+// If thiis works, then we'll fly with it.
+// Otherwise, look into cuBLAS for doing a vector multiplication to 
+// get the row sums.
 void normalizeCuda(float* deviceHigh,float* deviceLow,float* deviceChord,float* highNotes,float* lowNotes,float* chords){
  
     int Nrows = NUM_NOTES * NUM_NOTES;
@@ -271,6 +287,8 @@ void normalizeCuda(float* deviceHigh,float* deviceLow,float* deviceChord,float* 
     cudaMemcpy(highNotes, deviceHigh, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
     cudaMemcpy(lowNotes, deviceLow, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
     cudaMemcpy(chords, deviceChord, sizeof(float) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
+
+  // TODO: sync stuff ehre
 
     cudaFree(deviceHigh);
     cudaFree(deviceLow);
