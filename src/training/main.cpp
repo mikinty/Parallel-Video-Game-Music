@@ -8,12 +8,9 @@
 using namespace std;
 
 void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::string key){
-  // TODO:
-  // don't just open old matrix. make new one and write into that. 
-  // After done, rename to old file name (and delete old file)
 
 	std::ofstream outFile;
-	outFile.open("highMatrix.txt");
+	outFile.open("highMatrixNew.txt");
   outFile << key << "\n";
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
@@ -23,7 +20,7 @@ void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::strin
 	}
 	outFile.close();
 
-	outFile.open("lowMatrix.txt");
+	outFile.open("lowMatrixNew.txt");
   outFile << key << "\n";
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
@@ -33,7 +30,7 @@ void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::strin
 	}
 	outFile.close();
 
-	outFile.open("chordMatrix.txt");
+	outFile.open("chordMatrixNew.txt");
   outFile << key << "\n";
 	for (int i = 0; i < NUM_CHORDS; i ++){
 		for (int j = 0; j < NUM_CHORDS; j++){
@@ -42,6 +39,13 @@ void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::strin
 		outFile << "\n";
 	}
 	outFile.close();
+
+  remove("highMatrix.txt");
+  remove("lowMatrix.txt");
+  remove("chordMatrix.txt");
+  std::rename("highMatrixNew.txt", "highMatrix.txt");
+  std::rename("lowMatrixNew.txt", "lowMatrix.txt");
+  std::rename("chordMatrixNew.txt", "chordMatrix.txt");
 
   free(highNotes);
   free(lowNotes);
