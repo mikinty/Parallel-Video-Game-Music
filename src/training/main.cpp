@@ -7,8 +7,15 @@
 
 using namespace std;
 
-void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::string key){
-
+/**
+ * @brief Outputs matrices to output
+ * 
+ * @param highNotes matrix of soprano melody transitions
+ * @param lowNotes  matrix of bass melody transitions
+ * @param chords    matrix of soprano chord transitions
+ */
+void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::string key) {
+  // TODO: major/minor matrices
 	std::ofstream outFile;
 	outFile.open("highMatrixNew.txt");
   outFile << key << "\n";
@@ -71,8 +78,8 @@ int main(int argc, char** argv) {
 	sound_t* bass = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
   int maxLen = INIT_ARRAY_LENGTH;
 
-  // Pass in files through args
-	// Read given files
+  // First 3 arguments are going to be the matrix files
+  // Following arguments are the input MIDI parsed txts
 	for(int fileIndex = 0; fileIndex < argc; fileIndex++){
     int sLen = 0;
     int bLen = 0;
@@ -90,7 +97,6 @@ int main(int argc, char** argv) {
     std::getline(file, key); //Grab major or minor mark
 
     while(std::getline(file, fileLine)){
-
       if (fileLine.find('H') != std::string::npos) { //Set correct part
         currentPart = 1;
       }

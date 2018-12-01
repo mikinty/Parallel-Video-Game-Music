@@ -11,4 +11,4 @@
 struct sound_t {
 	int tone;
 	int duration;
-}
+};

@@ -8,6 +8,7 @@
 #include <driver_functions.h>
 #include "training.h"
 
+#include <thrust/iterator/discard_iterator.h>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/generate.h>
@@ -17,7 +18,8 @@
 #include <thrust/sequence.h>
 
 //Transforms 2 (noteTone, noteLength) pairs to a matrix index
-static inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2)
+__device__ 
+inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2)
 {
   // current note 
   int col = curTone * curDur - 1;
@@ -38,7 +40,8 @@ static inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevD
 }
 
 //Gets flattened matrix index
-static inline int findChordCell(int curTone, int prevTone){
+__device__
+inline int findChordCell(int curTone, int prevTone){
 	
   if (prevTone > NUM_TONES){
         prevTone = prevTone - NUM_TONES - 1; //shift chord down
@@ -47,7 +50,8 @@ static inline int findChordCell(int curTone, int prevTone){
   return prevTone * NUM_CHORDS + (curTone - NUM_TONES - 1);
 }
 
-__global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int bLength,float* deviceHigh,float* deviceLow,float* deviceChord)
+__global__ 
+void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int bLength,float* deviceHigh,float* deviceLow,float* deviceChord)
 {
     sound_t* part;
     int start;
@@ -102,12 +106,12 @@ __global__ void CountSection(sound_t* deviceS,int sLength,sound_t* deviceB,int b
         int cell;
         if (curTone > NUM_TONES) { //insert into chord matrix
             cell = findChordCell(curTone, prevTone1);
-            atomic_add(deviceChord[cell], 1);
+            atomicAdd(deviceChord + cell, 1);
         }
         else { 
           //insert into melody note matrix
           cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-          atomic_add(melodyM[cell], 1);
+          atomicAdd(melodyM + cell, 1);
         }
     }
 
