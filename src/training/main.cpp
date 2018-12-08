@@ -8,96 +8,139 @@
 using namespace std;
 
 /**
- * @brief Outputs matrices to output
- * 
- * @param highNotes matrix of soprano melody transitions
- * @param lowNotes  matrix of bass melody transitions
- * @param chords    matrix of soprano chord transitions
+ * @brief Outputs matrices to files
  */
-void outputMatrices(float* highNotes, float* lowNotes, float* chords, std::string key) {
-  // TODO: major/minor matrices
+void outputMatrices() {
+  
+  //For each matrix, copy matrix into file
 	std::ofstream outFile;
-	outFile.open("highMatrixNew.txt");
+	outFile.open("majorHighMatrixNew.txt");
   outFile << key << "\n";
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
-			outFile << highNotes[i * NUM_NOTES + j] << " ";
+			outFile << majorHighNotes[i * NUM_NOTES + j] << " ";
 		}
 		outFile << "\n";
 	}
 	outFile.close();
 
-	outFile.open("lowMatrixNew.txt");
+	outFile.open("majorLowMatrixNew.txt");
   outFile << key << "\n";
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
-			outFile << lowNotes[i * NUM_NOTES + j] << " ";
+			outFile << majorLowNotes[i * NUM_NOTES + j] << " ";
 		}
 		outFile << "\n";
 	}
 	outFile.close();
 
-	outFile.open("chordMatrixNew.txt");
+	outFile.open("majorChordMatrixNew.txt");
   outFile << key << "\n";
 	for (int i = 0; i < NUM_CHORDS; i ++){
 		for (int j = 0; j < NUM_CHORDS; j++){
-			outFile << chords[i * NUM_CHORDS + j] << " ";
+			outFile << majorChords[i * NUM_CHORDS + j] << " ";
 		}
 		outFile << "\n";
 	}
 	outFile.close();
 
-  remove("highMatrix.txt");
-  remove("lowMatrix.txt");
-  remove("chordMatrix.txt");
-  std::rename("highMatrixNew.txt", "highMatrix.txt");
-  std::rename("lowMatrixNew.txt", "lowMatrix.txt");
-  std::rename("chordMatrixNew.txt", "chordMatrix.txt");
+  std::ofstream outFile;
+  outFile.open("minorHighMatrixNew.txt");
+  outFile << key << "\n";
+  for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
+    for (int j = 0; j < NUM_NOTES; j++){
+      outFile << minorHighNotes[i * NUM_NOTES + j] << " ";
+    }
+    outFile << "\n";
+  }
+  outFile.close();
 
-  free(highNotes);
-  free(lowNotes);
-  free(chords);
+  outFile.open("minorLowMatrixNew.txt");
+  outFile << key << "\n";
+  for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
+    for (int j = 0; j < NUM_NOTES; j++){
+      outFile << minorLowNotes[i * NUM_NOTES + j] << " ";
+    }
+    outFile << "\n";
+  }
+  outFile.close();
+
+  outFile.open("minorChordMatrixNew.txt");
+  outFile << key << "\n";
+  for (int i = 0; i < NUM_CHORDS; i ++){
+    for (int j = 0; j < NUM_CHORDS; j++){
+      outFile << minorChords[i * NUM_CHORDS + j] << " ";
+    }
+    outFile << "\n";
+  }
+  outFile.close();
+
+  //Remove all old files, and replace with the new matrix files
+  remove("majorHighMatrix.txt");
+  remove("majorHowMatrix.txt");
+  remove("majorChordMatrix.txt");
+  remove("minorHighMatrix.txt");
+  remove("minorHowMatrix.txt");
+  remove("minorChordMatrix.txt");
+  std::rename("majorHighMatrixNew.txt", "majorHighMatrix.txt");
+  std::rename("majorLowMatrixNew.txt", "majorLowMatrix.txt");
+  std::rename("majorChordMatrixNew.txt", "majorChordMatrix.txt");
+  std::rename("minorHighMatrixNew.txt", "minorHighMatrix.txt");
+  std::rename("minorLowMatrixNew.txt", "minorLowMatrix.txt");
+  std::rename("minorChordMatrixNew.txt", "minorChordMatrix.txt");
+
+  //Free all host matrices
+  free(majorHighNotes);
+  free(majorLowNotes);
+  free(majorChords);
+  free(minorHighNotes);
+  free(minorLowNotes);
+  free(minorChords);
 }
 
+/**
+ * @brief Sets up and calls functions to create matrices from input files given in command line
+ * 
+ * @param argc nunmber of command line arguments
+ * @param argv array of command line arguments, where every argument is a path to an input file
+ */
 int main(int argc, char** argv) {
-  //Set up all final matrices
-  float* highNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  float* lowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  float* chords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
 
-  float* deviceHigh;
-  float* deviceLow;
-  float* deviceChord;
+  //Allocate memory for all final host matrices
+  majorHighNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorLowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorChords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
+  minorHighNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorLowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorChords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
 
-  initCuda(deviceHigh, deviceLow, deviceChord);
+  initCuda();
 
-  std::string key;
-
-  // 1000-length ones you send to device
-  sound_t* soprano = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH); //set up notes array
+  //Arrays of notes read from files, initialized to INIT_ARRAY_LENGTH (1000) in length
+  sound_t* soprano = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
 	sound_t* bass = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
   int maxLen = INIT_ARRAY_LENGTH;
 
-  // First 3 arguments are going to be the matrix files
-  // Following arguments are the input MIDI parsed txts
+  //Loop through all given input files, parse file, and add count to device matrices
 	for(int fileIndex = 0; fileIndex < argc; fileIndex++){
     int sLen = 0;
     int bLen = 0;
+    std::string mood;
     int currentPart;
 
 		std::string fileLine;
     std::ifstream file(argv[fileIndex]);
     std::size_t found;
 
-    if (!file){
+    if (!file){ //Throw error if file not found
     	std::cerr << "Cannot open file : " <<argv[fileIndex]<<std::endl;
     	return false;
     }
 
-    std::getline(file, key); //Grab major or minor mark
+    std::getline(file, mood); //Grab major or minor mark
 
-    while(std::getline(file, fileLine)){
-      if (fileLine.find('H') != std::string::npos) { //Set correct part
+    while(std::getline(file, fileLine)){ //run through every line (note or chord) in the file
+      if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
         currentPart = 1;
       }
       else if (fileLine.find('L') != std::string::npos){
@@ -115,24 +158,30 @@ int main(int argc, char** argv) {
       		sLen ++;
     		}
 
+        //If the notes run past the array length, re-allocate for more space
         if (bLen >= maxLen || sLen >= maxLen){
       		maxLen = maxLen * 2;
     				soprano = realloc(soprano, sizeof(sound_t) * maxLen);
           	bass = realloc(bass, sizeof(sound_t) * maxLen);
         }
     	}
-
     }
-    countTransitionsCuda(soprano, sLen, bass, bLen, deviceHigh, deviceLow, deviceChord);
+
+    countTransitionsCuda(soprano, sLen, bass, bLen, mood);
   }
 
+  //Free the arrays used to parse input files
   free(soprano);
   free(bass);
 
-  // normalize the transition matrix
-  normalizeCuda(deviceHigh, deviceLow, deviceChord, highNotes, lowNotes, chords);
+  //Normalize the transition matrices and move to host
+  normalizeCuda();
 
-  outputMatrices(highNotes, lowNotes, chords, key);
+  //Free all device memory
+  freeCuda();
+
+  //output matrices to files
+  outputMatrices();
 
   return 0;
 }
