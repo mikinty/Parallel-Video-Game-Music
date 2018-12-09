@@ -9,23 +9,28 @@
 #define NUM_NOTES NUM_TONES * NUM_DUR
 
 //Host matrices to be created + outputted to files
-float* majorHighNotes;
-float* majorLowNotes;
-float* majorChords;
-float* minorHighNotes;
-float* minorLowNotes;
-float* minorChords;
+extern float* majorHighNotes;
+extern float* majorLowNotes;
+extern float* majorChords;
+extern float* minorHighNotes;
+extern float* minorLowNotes;
+extern float* minorChords;
 
 //Device matrices mirroring host matrices above
-float* deviceMajorHighNotes;
-float* deviceMajorLowNotes;
-float* deviceMajorChords;
-float* deviceMinorHighNotes;
-float* deviceMinorLowNotes;
-float* deviceMinorChords;
+extern float* deviceMajorHighNotes;
+extern float* deviceMajorLowNotes;
+extern float* deviceMajorChords;
+extern float* deviceMinorHighNotes;
+extern float* deviceMinorLowNotes;
+extern float* deviceMinorChords;
 
 //Struct describing a note/chord from the input files
 struct sound_t {
 	int tone;
 	int duration;
 };
+
+void initCuda();
+void freeCuda();
+void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, std::string mood);
+void normalizeCuda();

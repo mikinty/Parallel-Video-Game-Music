@@ -17,6 +17,14 @@
 #include <thrust/random.h>
 #include <thrust/sequence.h>
 
+// Define global variables
+float* deviceMajorHighNotes;
+float* deviceMajorLowNotes;
+float* deviceMajorChords;
+float* deviceMinorHighNotes;
+float* deviceMinorLowNotes;
+float* deviceMinorChords;
+
 /**
  * @brief Transforms 2 (noteTone, noteLength) pairs to a matrix index for a melody matrix
  * 
@@ -159,7 +167,7 @@ void initCuda()
   cudaMemset(deviceMinorLowNotes, 0, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES);
   cudaMemset(deviceMinorChords, 0, sizeof(float) * NUM_CHORDS * NUM_CHORDS);
 
-  __syncthreads();
+  cudaThreadSynchronize();
 }
 
 /**
@@ -199,6 +207,7 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
   //Determine if we should use major or minor matrices, and call GPUS to count note transitions
   if (mood.compare("maj") == 0) { //major
     CountSection<<<NUM_THREADS, 2>>>(deviceS, sLength, deviceB, bLength, deviceMajorHighNotes, deviceMajorLowNotes, deviceMajorChords);
+  }
   else { //minor
     CountSection<<<NUM_THREADS, 2>>>(deviceS, sLength, deviceB, bLength, deviceMinorHighNotes, deviceMinorLowNotes, deviceMinorChords);
   }
@@ -286,7 +295,7 @@ void normalizeCuda(){
   int Nrows = NUM_NOTES * NUM_NOTES;
   int Ncols = NUM_NOTES;
 
-  thrust::device_ptr<float> thrust_high(deviceMajorHighNotes);
+  thrust::device_ptr<float> thrust_majorHigh(deviceMajorHighNotes);
   // --- Allocate space for row sums and indices
   thrust::device_vector<float> d_row_sums(Nrows);
   thrust::device_vector<int> d_row_indices(Nrows);
@@ -294,7 +303,7 @@ void normalizeCuda(){
   // --- Compute row sums by summing values with equal row indices
   thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
                         thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                        thrust_high,
+                        thrust_majorHigh,
                         d_row_indices.begin(),
                         d_row_sums.begin(),
                         thrust::equal_to<int>(),
@@ -303,16 +312,16 @@ void normalizeCuda(){
   thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                thrust_high,
+                thrust_majorHigh,
                 thrust::make_discard_iterator(),
                 d_row_sums.begin());
 
-  thrust::device_ptr<float> thrust_low(deviceMajorLowNotes);
+  thrust::device_ptr<float> thrust_majorLow(deviceMajorLowNotes);
 
   // --- Compute row sums by summing values with equal row indices
    thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
                         thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                        thrust_low,
+                        thrust_majorLow,
                         d_row_indices.begin(),
                         d_row_sums.begin(),
                         thrust::equal_to<int>(),
@@ -321,16 +330,16 @@ void normalizeCuda(){
    thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                thrust_low,
+                thrust_majorLow,
                 thrust::make_discard_iterator(),
                 d_row_sums.begin());
 
-  thrust::device_ptr<float> thrust_low(deviceMinorHighNotes);
+  thrust::device_ptr<float> thrust_minorHigh(deviceMinorHighNotes);
 
   // --- Compute row sums by summing values with equal row indices
   thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
                         thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                        thrust_low,
+                        thrust_minorHigh,
                         d_row_indices.begin(),
                         d_row_sums.begin(),
                         thrust::equal_to<int>(),
@@ -339,16 +348,16 @@ void normalizeCuda(){
   thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                thrust_low,
+                thrust_minorHigh,
                 thrust::make_discard_iterator(),
                 d_row_sums.begin());
 
-  thrust::device_ptr<float> thrust_low(deviceMinorLowNotes);
+  thrust::device_ptr<float> thrust_minorLow(deviceMinorLowNotes);
 
   // --- Compute row sums by summing values with equal row indices
   thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
                         thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                        thrust_low,
+                        thrust_minorLow,
                         d_row_indices.begin(),
                         d_row_sums.begin(),
                         thrust::equal_to<int>(),
@@ -357,7 +366,7 @@ void normalizeCuda(){
   thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                thrust_low,
+                thrust_minorLow,
                 thrust::make_discard_iterator(),
                 d_row_sums.begin());
 
@@ -366,14 +375,14 @@ void normalizeCuda(){
   Nrows = NUM_CHORDS;
   Ncols = NUM_CHORDS;
 
-  thrust::device_ptr<float> thrust_chord(deviceMajorChords);
+  thrust::device_ptr<float> thrust_majorChord(deviceMajorChords);
   thrust::device_vector<float> d_row_sums_c(Nrows);
   thrust::device_vector<int> d_row_indices_c(Nrows);
 
   // --- Compute row sums by summing values with equal row indices
   thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
                         thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                        thrust_chord,
+                        thrust_majorChord,
                         d_row_indices_c.begin(),
                         d_row_sums_c.begin(),
                         thrust::equal_to<int>(),
@@ -382,16 +391,16 @@ void normalizeCuda(){
   thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                thrust_chord,
+                thrust_majorChord,
                 thrust::make_discard_iterator(),
                 d_row_sums_c.begin());
 
-  thrust::device_ptr<float> thrust_chord(deviceMinorChords);
+  thrust::device_ptr<float> thrust_minorChord(deviceMinorChords);
 
   // --- Compute row sums by summing values with equal row indices
   thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
                         thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                        thrust_chord,
+                        thrust_minorChord,
                         d_row_indices_c.begin(),
                         d_row_sums_c.begin(),
                         thrust::equal_to<int>(),
@@ -400,7 +409,7 @@ void normalizeCuda(){
   thrust::reduce_by_key(
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)),
                 thrust::make_transform_iterator(thrust::make_counting_iterator(0), linear_index_to_row_index<int>(Ncols)) + (Nrows*Ncols),
-                thrust_chord,
+                thrust_minorChord,
                 thrust::make_discard_iterator(),
                 d_row_sums_c.begin());
 
@@ -412,5 +421,5 @@ void normalizeCuda(){
   cudaMemcpy(minorHighNotes, deviceMinorHighNotes, sizeof(float) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
   cudaMemcpy(minorChords, deviceMinorChords, sizeof(float) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
 
-  __syncthreads();
+  cudaThreadSynchronize();
 }

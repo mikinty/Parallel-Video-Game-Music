@@ -7,6 +7,14 @@
 
 using namespace std;
 
+//Define global variables
+float* majorHighNotes;
+float* majorLowNotes;
+float* majorChords;
+float* minorHighNotes;
+float* minorLowNotes;
+float* minorChords;
+
 /**
  * @brief Outputs matrices to files
  */
@@ -15,7 +23,6 @@ void outputMatrices() {
   //For each matrix, copy matrix into file
 	std::ofstream outFile;
 	outFile.open("majorHighMatrixNew.txt");
-  outFile << key << "\n";
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
 			outFile << majorHighNotes[i * NUM_NOTES + j] << " ";
@@ -25,7 +32,6 @@ void outputMatrices() {
 	outFile.close();
 
 	outFile.open("majorLowMatrixNew.txt");
-  outFile << key << "\n";
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
 			outFile << majorLowNotes[i * NUM_NOTES + j] << " ";
@@ -35,7 +41,6 @@ void outputMatrices() {
 	outFile.close();
 
 	outFile.open("majorChordMatrixNew.txt");
-  outFile << key << "\n";
 	for (int i = 0; i < NUM_CHORDS; i ++){
 		for (int j = 0; j < NUM_CHORDS; j++){
 			outFile << majorChords[i * NUM_CHORDS + j] << " ";
@@ -44,9 +49,7 @@ void outputMatrices() {
 	}
 	outFile.close();
 
-  std::ofstream outFile;
   outFile.open("minorHighMatrixNew.txt");
-  outFile << key << "\n";
   for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
     for (int j = 0; j < NUM_NOTES; j++){
       outFile << minorHighNotes[i * NUM_NOTES + j] << " ";
@@ -56,7 +59,6 @@ void outputMatrices() {
   outFile.close();
 
   outFile.open("minorLowMatrixNew.txt");
-  outFile << key << "\n";
   for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
     for (int j = 0; j < NUM_NOTES; j++){
       outFile << minorLowNotes[i * NUM_NOTES + j] << " ";
@@ -66,7 +68,6 @@ void outputMatrices() {
   outFile.close();
 
   outFile.open("minorChordMatrixNew.txt");
-  outFile << key << "\n";
   for (int i = 0; i < NUM_CHORDS; i ++){
     for (int j = 0; j < NUM_CHORDS; j++){
       outFile << minorChords[i * NUM_CHORDS + j] << " ";
@@ -107,18 +108,18 @@ void outputMatrices() {
 int main(int argc, char** argv) {
 
   //Allocate memory for all final host matrices
-  majorHighNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  majorLowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  majorChords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
-  minorHighNotes = malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  minorLowNotes =  malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  minorChords =  malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
+  majorHighNotes = (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorLowNotes =  (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorChords =  (float *) malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
+  minorHighNotes = (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorLowNotes =  (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorChords =  (float *) malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
 
   initCuda();
 
   //Arrays of notes read from files, initialized to INIT_ARRAY_LENGTH (1000) in length
-  sound_t* soprano = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
-	sound_t* bass = malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
+  sound_t* soprano = (sound_t*) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
+	sound_t* bass = (sound_t *) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
   int maxLen = INIT_ARRAY_LENGTH;
 
   //Loop through all given input files, parse file, and add count to device matrices
@@ -148,21 +149,21 @@ int main(int argc, char** argv) {
       }
       else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
       	if (currentPart == 0){
-      		bass[bLen].tone = stoi(fileLine.substr(0, found));
-      		bass[bLen].duration = stoi(fileLine.substr(found+1));
+      		bass[bLen].tone = std::stoi(fileLine.substr(0, found));
+      		bass[bLen].duration = std::stoi(fileLine.substr(found+1));
       		bLen ++;
       	}
       	else{
-      		soprano[sLen].tone = stoi(fileLine.substr(0, found));
-      		soprano[sLen].duration = stoi(fileLine.substr(found+1));
+      		soprano[sLen].tone = std::stoi(fileLine.substr(0, found));
+      		soprano[sLen].duration = std::stoi(fileLine.substr(found+1));
       		sLen ++;
     		}
 
         //If the notes run past the array length, re-allocate for more space
         if (bLen >= maxLen || sLen >= maxLen){
       		maxLen = maxLen * 2;
-    				soprano = realloc(soprano, sizeof(sound_t) * maxLen);
-          	bass = realloc(bass, sizeof(sound_t) * maxLen);
+    				soprano = (sound_t *) realloc(soprano, sizeof(sound_t) * maxLen);
+          	bass = (sound_t *) realloc(bass, sizeof(sound_t) * maxLen);
         }
     	}
     }
