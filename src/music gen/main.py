@@ -103,7 +103,7 @@ while(true)
 	receivePartsSplit()
 
 	#Calls GPUs to generate measures of music
-	music = mgp.generateMusic(highNotes, lowNotes, chords, parts, tonic)
+	music = mgp.generateMusic(highNotes, lowNotes, chords, parts, tonic, mood)
 
 	#Sends music messages
 	sendMusic()
