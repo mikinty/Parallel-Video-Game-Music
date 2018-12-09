@@ -31,6 +31,8 @@ void outputMatrices() {
 	}
 	outFile.close();
 
+  printf("Printing 1/6 complete\n");
+
 	outFile.open("majorLowMatrixNew.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
@@ -107,6 +109,10 @@ void outputMatrices() {
  */
 int main(int argc, char** argv) {
 
+  //If there are no files to look at, stop
+  if (argc <= 1)
+    return 0;
+
   //Allocate memory for all final host matrices
   majorHighNotes = (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
   majorLowNotes =  (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
@@ -123,7 +129,7 @@ int main(int argc, char** argv) {
   int maxLen = INIT_ARRAY_LENGTH;
 
   //Loop through all given input files, parse file, and add count to device matrices
-	for(int fileIndex = 0; fileIndex < argc; fileIndex++){
+	for(int fileIndex = 1; fileIndex < argc; fileIndex++){
     int sLen = 0;
     int bLen = 0;
     std::string mood;
@@ -168,18 +174,27 @@ int main(int argc, char** argv) {
     	}
     }
 
+    printf("Start counting transitions \n");
     countTransitionsCuda(soprano, sLen, bass, bLen, mood);
   }
+
+  printf("Finished counting transitions \n");
 
   //Free the arrays used to parse input files
   free(soprano);
   free(bass);
 
+  printf("Start normalization and copying to host \n");
+
   //Normalize the transition matrices and move to host
   normalizeCuda();
 
+  printf("Finished normalization and copying to host \n");
+
   //Free all device memory
   freeCuda();
+
+  printf("Start outputting matrices \n");
 
   //output matrices to files
   outputMatrices();

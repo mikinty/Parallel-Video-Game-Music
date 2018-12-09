@@ -205,7 +205,7 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
   cudaMemcpy(deviceB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
 
   //Determine if we should use major or minor matrices, and call GPUS to count note transitions
-  if (mood.compare("maj") == 0) { //major
+  if (mood.compare("major") == 0) { //major 
     CountSection<<<NUM_THREADS, 2>>>(deviceS, sLength, deviceB, bLength, deviceMajorHighNotes, deviceMajorLowNotes, deviceMajorChords);
   }
   else { //minor
@@ -292,13 +292,13 @@ struct linear_index_to_row_index : public thrust::unary_function<T,T> {
 void normalizeCuda(){
  
   //setup number of rows, cols for normalizing melodic matrices
-  int Nrows = NUM_NOTES * NUM_NOTES;
+  int Nrows = 5;
   int Ncols = NUM_NOTES;
 
   thrust::device_ptr<float> thrust_majorHigh(deviceMajorHighNotes);
   // --- Allocate space for row sums and indices
-  thrust::device_vector<float> d_row_sums(Nrows);
-  thrust::device_vector<int> d_row_indices(Nrows);
+  thrust::device_vector<float> drowsums(100);
+  thrust::device_vector<int> d_row_indices(5);
 
   // --- Compute row sums by summing values with equal row indices
   thrust::reduce_by_key(thrust::make_transform_iterator(thrust::counting_iterator<int>(0), linear_index_to_row_index<int>(Ncols)),
