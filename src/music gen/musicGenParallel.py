@@ -1,56 +1,99 @@
 # Module: musicGenParallel.py
 import numpy as np
-from pyculib import rand as curand
+from numba import cuda
+from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 
 #Music settings
 NUMMEASURES = 4
 BEATSPERMEASURE = 4
 NUMPARTS = 10
-NUMTONES = 101 #TODO: FIX THIS NUMBER
+NUMTONES = 74 #TODO: FIX THIS NUMBER
 NUMDUR = 15
 CHORDOFFSET = 101
+NUMOCTAVES = 6
 
 #(note, duration) datatype
-note = np.dtype([('tone', int), ('duration', int)])
-
-#Random number generator
-prng = rand.PRNG(rndtype=rand.PRNG.XORWOW)
+note = np.dtype([('tone', np.int32), ('duration', np.int32)])
 
 #Generates next note based on previous notes
 #Returns a (tone, duration) pair
 @cuda.jit(device = True)
-def nextNote(noteIndex, partName, matrix, deviceMusic):
+def nextNote(noteIndex, partName, matrix, deviceMusic, tonic, mood, rng_states):
+	#Used for probablity calculations
 	probSum = 0
-	i = 0
-	tone = None
-	duration = None
+	probIndex = 0
 
-	if noteIndex == 0 : #Randomly generate first note
+	#Note to be picked
+	tone = 0
+	duration = 0
 
+	if partName == 0 : #chord
+		if noteIndex == 0 : #End on base chord in some inversion
+			#Get mid of chord
+			mid = None
+			if mood == 0 : #Minor chord
+				mid = tonic + 3
+			else: #Major chord
+				mid = tonic + 4
 
-  else if noteIndex == 1 && partName != 0 : #Randomly generate second note
+			#Get random inversion
+			prob = xoroshiro128p_uniform_float32(rng_states, cuda.threadIdx.x)
+			if prob < 0.33 : 
+				tone = (tonic + 7) + tonic * 12 + mid * 144
+			else if prob < 0.66 :
+				tone = mid + (tonic + 7) * 12 + tonic * 144
+			else :
+				tone = tonic + mid * 12 + (tonic + 7) * 144
 
-	else if partName == 0 : #chord
-		#Get matrix line
-		matrixIndex = (deviceMusic[noteIndex - 1][['tone']] - CHORDOFFSET) * deviceMusic[noteIndex - 1][['duration']] - 1
-		probLine = matrix[matrixIndex]
+		else : #Get chord based on previous chord
+			#Get matrix line
+			matrixIndex = ((deviceMusic[noteIndex - 1]['tone'] % 12 - tonic) + 
+				(deviceMusic[noteIndex - 1]['tone'] / 12 % 12 - tonic) * 12 + 
+				(deviceMusic[noteIndex - 1]['tone'] / 144 - tonic) * 144) - CHORDOFFSET
+			probLine = matrix[matrixIndex]
 
-		#Get random probablity from 0 to 1, and find corresponding note
-		prob = prng.
-		while(probSum < prob)
-			probSum = probSum + probLine[i]
-			i = i + 1
-		duration = (i + 1) % NUMDUR + 1
-		tone = 
+			#Get random probablity from 0 to 1, and find corresponding note
+			prob = xoroshiro128p_uniform_float32(rng_states, cuda.threadIdx.x)
+			while(probSum < prob)
+				probSum = probSum + probLine[probIndex]
+				probIndex = probIndex + 1
+			tone = ((probIndex % 12 + tonic) + (probIndex / 12 % 12 + tonic) * 12 + 
+				(probIndex / 144 + tonic) * 144) + CHORDOFFSET
 
   else : #melodic line
+  	if noteIndex < 2 : #Pick random notes
+  		prob = xoroshiro128p_uniform_float32(rng_states, cuda.threadIdx.x)
+  		if prob < 0.5 : #Return tonic most of the time
+  			tone = tonic + 12 * (prob * NUMOCTAVES)
+  		else if prob < 0.75 : #Return 5th a large portion of the time
+  			tone = tonic + 7 + 12 * (prob * NUMOCTAVES)
+  		else : #Random note
+  			tone = int(prob * NUMTONES)
 
-	return 
+  		duration = int(prob * 16)
+
+  	else: #Get note based on previous notes
+  		#Get matrix line
+			matrixIndex = (((deviceMusic[noteIndex - 1]['tone'] - tonic)* NUMDUR + 
+				deviceMusic[noteIndex - 1]['duration'])
+				* NUMNOTES) + ((deviceMusic[noteIndex - 2]['tone'] - tonic)* NUMDUR + 
+				deviceMusic[noteIndex - 2]['duration'])
+			probLine = matrix[matrixIndex]
+
+			#Get random probablity from 0 to 1, and find corresponding note
+			prob = xoroshiro128p_uniform_float32(rng_states, cuda.threadIdx.x)
+			while(probSum < prob)
+				probSum = probSum + probLine[probIndex]
+				probIndex = probIndex + 1
+			tone = probIndex / NUMDUR + tonic
+			duration = probIndex % NUMDUR
+
+	return (tone, duration)
 
 #Creates and stores a total of NUMMEASURES of music in parallel,
 #split by parts
 @cuda.jit(device = True)
-def generatePart(deviceHigh, deviceLow, deviceChords, deviceParts, deviceMusic):
+def generatePart(deviceHigh, deviceLow, deviceChords, deviceParts, deviceMusic, tonic, mood, rng_states):
 	partIndex = cuda.threadIdx.x
 	numBeatsFilled = 0
 	matrix = None
@@ -69,26 +112,23 @@ def generatePart(deviceHigh, deviceLow, deviceChords, deviceParts, deviceMusic):
 	#Generating notes
 	while numBeatsFilled < NUMMEAURES * BEATSPERMEASURE : 
 		#Get next note
-		newNote = nextNote(noteIndex, deviceParts[partIndex], matrix, deviceMusic, tonic)
+		newNote = nextNote(noteIndex, deviceParts[partIndex], matrix, deviceMusic, tonic, mood, rng_states)
 
-		numBeatsFilled = numBeatsFilled + newNote[['duration']]
+		numBeatsFilled = numBeatsFilled + newNote['duration']
 
 		#If too long, chop note off at end of measure
 		if (numBeatsFilled > NUMMEAURES * BEATSPERMEASURE) :
-			newNote[['duration']] = NUMMEAURES * BEATSPERMEASURE - numBeatsFilled + newNote[['duration']] 
-		
-		#Transpose new note to correct key
-		newNote[['tone']] = newNote[['tone']] + tonic
+			newNote['duration'] = NUMMEAURES * BEATSPERMEASURE - numBeatsFilled + newNote[['duration']] 
 
 		#Add note to music array
-		deviceMusic[partIndex] = np.append(deviceMusic[partIndex], newNote)
+		deviceMusic[partIndex][noteIndex] = newNote
 		noteIndex = noteIndex + 1
 	return
 
 #Calls GPU to generate NUMMEASURES total measures of music
 #Returns a 2D array containing the (tone, duration) pairs of the
 #music generated, split by part (as assigned by the parts variable)
-def generateMusic(highNotes, lowNotes, chords, parts, tonic):
+def generateMusic(highNotes, lowNotes, chords, parts, tonic, mood):
 	#Pass matrices to device
 	deviceHigh = cuda.to_device(highNotes)
 	deviceLow = cuda.to_device(lowNotes)
@@ -101,7 +141,8 @@ def generateMusic(highNotes, lowNotes, chords, parts, tonic):
 	deviceMusic = cuda.device_array((10, NUMMEASURES * BEATSPERMEASURE * 4), dtype = note)
 
 	#Generate parts in parallel, and copy to host
-	generatePart[1, 10](deviceHigh, deviceLow, deviceChords, deviceParts, deviceMusic, tonic)
+	rng_states = create_xoroshiro128p_states(10, seed=1)
+	generatePart[1, 10](deviceHigh, deviceLow, deviceChords, deviceParts, deviceMusic, tonic, mood, rng_states)
 	music = numpy.empty(shape = deviceMusic.shape, dtype = note)
 	deviceMusic.copy_to_host(music)
 
