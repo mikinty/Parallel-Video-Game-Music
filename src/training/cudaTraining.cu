@@ -43,7 +43,8 @@ inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, in
       prevTone2 = curTone - (curTone % 12) + prevTone2; //find closest note
   }
 
-  int row = prevTone1 * prevDur1 * prevTone2 * prevDur2 - 1;
+  int row = ((prevTone1 * NUM_DUR) + prevDur1) * NUM_NOTES
+    + ((prevTone2 * NUM_DUR) + prevDur2);
 
   return row * NUM_NOTES + col;
 }
