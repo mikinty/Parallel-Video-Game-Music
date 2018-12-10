@@ -39,7 +39,7 @@ __device__
 inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2)
 {
   // current note 
-  int col = curTone * curDur - 1;
+  int col = curTone * NUM_DUR + curDur;
 
   //If previous tones are chords, get top note and find closest
   if (prevTone1 >= CHORD_OFFSET){
@@ -66,8 +66,11 @@ inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, in
 __device__
 inline int findChordCell(int curTone, int prevTone){
 	
-  if (prevTone >= CHORD_OFFSET){
-        prevTone = prevTone - CHORD_OFFSET; //shift chord down
+  if (prevTone >= CHORD_OFFSET) { //is a chord
+    prevTone = prevTone - CHORD_OFFSET; //shift chord down
+  }
+  else { //is a note
+    prevTone = prevTone % 12;
   }
   
   return prevTone * NUM_CHORDS + (curTone - CHORD_OFFSET);
@@ -94,9 +97,9 @@ void CountSection(sound_t* part, int length, int* deviceMatrix)
     end = length;
   }
   else{
-     end = start + length/NUM_THREADS;
-  }
-  
+    end = start + length/NUM_THREADS;
+  } 
+
   //Grab previous notes and durations
   int prevTone1 = part[start-2].tone;
   int prevDur1 = part[start-2].duration;
@@ -112,8 +115,10 @@ void CountSection(sound_t* part, int length, int* deviceMatrix)
     curTone = part[noteIndex].tone;
     curDur = part[noteIndex].duration;
     
-    int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-    deviceMatrix[cell]++;   
+    if (curTone < NUM_TONES) { //if not a chord, insert
+      int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
+      atomicAdd(&deviceMatrix[cell], 1);   
+    }
   } 
 }
 
@@ -168,7 +173,7 @@ void CountChordSection(sound_t* deviceS, int sLength, sound_t* deviceB, int bLen
     int cell; //matrix index to insert into
     if (curTone >= CHORD_OFFSET) { //insert into chord matrix
       cell = findChordCell(curTone, prevTone1);
-      deviceMatrix[cell]++;
+      atomicAdd(&deviceMatrix[cell], 1);
     }
   } 
 }
@@ -267,19 +272,19 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
     cudaSetDevice(MAJOR_HIGH_DEVICE);
     cudaMalloc((void **)&deviceS, sizeof(sound_t) * sLength);
     cudaMemcpyAsync(deviceS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
-    CountSection<<<NUM_THREADS, 1>>>(deviceS, sLength, deviceMajorHighNotes);
+    CountSection<<<1, NUM_THREADS>>>(deviceS, sLength, deviceMajorHighNotes);
    
     cudaSetDevice(MAJOR_LOW_DEVICE);
     cudaMalloc((void **)&deviceB, sizeof(sound_t) * bLength);
     cudaMemcpyAsync(deviceB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
-    CountSection<<<NUM_THREADS, 1>>>(deviceB, bLength, deviceMajorLowNotes);
+    CountSection<<<1, NUM_THREADS>>>(deviceB, bLength, deviceMajorLowNotes);
 
     cudaSetDevice(MAJOR_CHORD_DEVICE);
     cudaMalloc((void **)&deviceChordS, sizeof(sound_t) * sLength);
     cudaMemcpyAsync(deviceChordS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
     cudaMalloc((void **)&deviceChordB, sizeof(sound_t) * bLength);
     cudaMemcpyAsync(deviceChordB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
-    CountChordSection<<<NUM_THREADS, 2>>>(deviceChordS, sLength, deviceChordB, bLength, deviceMajorChords);
+    CountChordSection<<<2, NUM_THREADS>>>(deviceChordS, sLength, deviceChordB, bLength, deviceMajorChords);
 
     //Free used memory
     cudaFree(deviceChordS);
@@ -294,19 +299,19 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
      cudaSetDevice(MINOR_HIGH_DEVICE);
      cudaMalloc((void **)&deviceS, sizeof(sound_t) * sLength);
      cudaMemcpyAsync(deviceS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
-     CountSection<<<NUM_THREADS, 1>>>(deviceS, sLength, deviceMinorHighNotes);
+     CountSection<<<1, NUM_THREADS>>>(deviceS, sLength, deviceMinorHighNotes);
      
      cudaSetDevice(MINOR_LOW_DEVICE);
      cudaMalloc((void **)&deviceB, sizeof(sound_t) * bLength);
      cudaMemcpyAsync(deviceB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
-     CountSection<<<NUM_THREADS, 1>>>(deviceB, bLength, deviceMinorLowNotes);
+     CountSection<<<1, NUM_THREADS>>>(deviceB, bLength, deviceMinorLowNotes);
      
      cudaSetDevice(MINOR_CHORD_DEVICE);
      cudaMalloc((void **)&deviceChordS, sizeof(sound_t) * sLength);
      cudaMemcpyAsync(deviceChordS, soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice);
      cudaMalloc((void **)&deviceChordB, sizeof(sound_t) * bLength);
      cudaMemcpyAsync(deviceChordB, bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice);
-     CountChordSection<<<NUM_THREADS, 2>>>(deviceChordS, sLength, deviceChordB, bLength, deviceMinorChords);
+     CountChordSection<<<2, NUM_THREADS>>>(deviceChordS, sLength, deviceChordB, bLength, deviceMinorChords);
 
      //Free used memory
      cudaFree(deviceChordS);
@@ -332,7 +337,7 @@ struct linear_index_to_row_index : public thrust::unary_function<T,T> {
 /**
  * @brief Normalizes all 6 device matrices, and copies them into host
  */
-void normalizeCuda(){
+/*void normalizeCuda(){
 
   //setup number of rows, cols for normalizing melodic matrices
   int Nrows = NUM_NOTES * NUM_NOTES;
@@ -362,7 +367,7 @@ void normalizeCuda(){
                 d_row_sums.begin());
 
   cudaDeviceSynchronize();
-/*
+
   cudaSetDevice(MAJOR_LOW_DEVICE);
 
   thrust::device_ptr<float> thrust_majorLow(deviceMajorLowNotes);
@@ -466,22 +471,22 @@ void normalizeCuda(){
                 thrust_minorChord,
                 thrust::make_discard_iterator(),
                 d_row_sums_c.begin());
-*/
-}
+
+}*/
 
 void cudaToHost()
 {
   //Copy all matrices into host memory
   cudaSetDevice(MAJOR_HIGH_DEVICE);
-  cudaMemcpy(majorHighNotes, (int*)deviceMajorHighNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
+  cudaMemcpy(majorHighNotes, deviceMajorHighNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
   cudaSetDevice(MAJOR_LOW_DEVICE);
-  cudaMemcpy(majorLowNotes, (int*)deviceMajorLowNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
+  cudaMemcpy(majorLowNotes, deviceMajorLowNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
   cudaSetDevice(MAJOR_CHORD_DEVICE);
-  cudaMemcpy(majorChords, (int*)deviceMajorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
+  cudaMemcpy(majorChords, deviceMajorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
   cudaSetDevice(MINOR_HIGH_DEVICE);
-  cudaMemcpy(minorHighNotes, (int*)deviceMinorHighNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
+  cudaMemcpy(minorHighNotes, deviceMinorHighNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
   cudaSetDevice(MINOR_LOW_DEVICE);
-  cudaMemcpy(minorHighNotes, (int*)deviceMinorHighNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
+  cudaMemcpy(minorHighNotes, deviceMinorHighNotes, sizeof(int) * NUM_NOTES * NUM_NOTES * NUM_NOTES, cudaMemcpyDeviceToHost);
   cudaSetDevice(MINOR_CHORD_DEVICE);
-  cudaMemcpy(minorChords, (int*)deviceMinorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
+  cudaMemcpy(minorChords, deviceMinorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
 }

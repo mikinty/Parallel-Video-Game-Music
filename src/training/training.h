@@ -4,8 +4,8 @@
 /* All chord numbers are offsetted by +101 */
 #define CHORD_OFFSET 101
 /* num threads per block */
-#define NUM_THREADS 16
-#define INIT_ARRAY_LENGTH 1000
+#define NUM_THREADS 1000
+#define INIT_ARRAY_LENGTH 100000 
 #define NUM_NOTES NUM_TONES * NUM_DUR
 /* CUDA GPU Device Ids */
 #define MAJOR_HIGH_DEVICE 0

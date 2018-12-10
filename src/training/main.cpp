@@ -4,9 +4,7 @@
 #include "training.h"
 #include <iostream>
 #include <fstream>
-#include <filesystem>
 
-namespace fs = std::filesystem;
 using namespace std;
 
 //Define global variables
@@ -126,7 +124,7 @@ int main(int argc, char** argv) {
 
   //If there is not a directory to look at, stop
   if (argc != 2) {
-    prtinf("Improperly formatted command line input (give one diretory path)\n");
+    printf("Improperly formatted command line input (give one file path)\n");
     return 0;
   }
 
@@ -143,36 +141,31 @@ int main(int argc, char** argv) {
   //Arrays of notes read from files, initialized to INIT_ARRAY_LENGTH (1000) in length
   sound_t* soprano = (sound_t*) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
 	sound_t* bass = (sound_t *) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
-  int maxLen = INIT_ARRAY_LENGTH;
 
-  prinf("Begin parsing files \n");
+  std::string fileLine;
+  std::ifstream file(argv[1]);
+  std::size_t found;
+
+  int sLen = 0;
+  int bLen = 0;
+  std::string mood;
+  int currentPart;
+
+  if (!file){ //Throw error if file not found
+    std::cerr << "Cannot open file : " <<argv[1]<<std::endl;
+    return false;
+  }
+  printf("Begin parsing files \n");
 
   //Loop through all given input files, parse file, and add count to device matrices
-	for(auto& filePath : fs::directory_iterator(argv[1])){
-    int sLen = 0;
-    int bLen = 0;
-    std::string mood;
-    int currentPart;
-
-		std::string fileLine;
-    std::ifstream file(filePath.path());
-    std::size_t found;
-
-    if (!file){ //Throw error if file not found
-    	std::cerr << "Cannot open file : " <<filePath.path()<<std::endl;
-    	return false;
+	while(std::getline(file, fileLine)) {//Run through all lines in file
+    if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
+      currentPart = 1;
     }
-
-    std::getline(file, mood); //Grab major or minor mark
-
-    while(std::getline(file, fileLine)){ //run through every line (note or chord) in the file
-      if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
-        currentPart = 1;
-      }
-      else if (fileLine.find('L') != std::string::npos){
-      	currentPart = 0;
-      }
-      else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
+    else if (fileLine.find('L') != std::string::npos){
+    	currentPart = 0;
+    }
+    else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
       	if (currentPart == 0){
       		bass[bLen].tone = std::stoi(fileLine.substr(0, found));
       		bass[bLen].duration = std::stoi(fileLine.substr(found+1));
@@ -183,18 +176,28 @@ int main(int argc, char** argv) {
       		soprano[sLen].duration = std::stoi(fileLine.substr(found+1));
       		sLen ++;
     		}
-
-        //If the notes run past the array length, re-allocate for more space
-        if (bLen >= maxLen || sLen >= maxLen){
-      		maxLen = maxLen * 2;
-  				soprano = (sound_t *) realloc(soprano, sizeof(sound_t) * maxLen);
-         	bass = (sound_t *) realloc(bass, sizeof(sound_t) * maxLen);
-        }
-    	}
     }
-    countTransitionsCuda(soprano, sLen, bass, bLen, mood);
+    else if (fileLine.find('m') != std::string::npos) { //Switch mood
+      //Insert current running notes, and reset
+      if (sLen > 0 || bLen > 0)
+        countTransitionsCuda(soprano, sLen, bass, bLen, mood);
+      mood = fileLine;
+      sLen = 0;
+      bLen = 0;
+    }
+  
+    //If the notes run past the array length, send array over
+    if (bLen >= INIT_ARRAY_LENGTH || sLen >= INIT_ARRAY_LENGTH){
+      countTransitionsCuda(soprano, sLen, bass, bLen, mood);
+      sLen = 0;
+      bLen = 0;
+    }
   }
 
+  //Send over any extra notes
+  if (sLen > 0 || bLen > 0)
+    countTransitionsCuda(soprano, sLen, bass, bLen, mood);
+ 
   synchAllCuda();
   printf("Finished counting transitions \n");
 
