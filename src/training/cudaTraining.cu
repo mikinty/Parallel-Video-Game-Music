@@ -102,9 +102,9 @@ void CountSection(sound_t* part, int length, int* deviceMatrix)
   int prevDur1 = part[start-2].duration;
   int curTone = part[start-1].tone;
   int curDur = part[start-1].duration;
-   //Counts notes for the assigned section
+  //Counts notes for the assigned section
   for (int noteIndex = start; noteIndex < end; noteIndex++){
-     //Grab correct tones and durations for current, previous, and note before previous
+    //Grab correct tones and durations for current, previous, and note before previous
   	int prevTone2 = prevTone1;
   	int prevDur2 = prevDur1;
   	prevTone1 = curTone;
@@ -161,7 +161,7 @@ void CountChordSection(sound_t* deviceS, int sLength, sound_t* deviceB, int bLen
   int curTone = part[start-1].tone;
    //Counts notes for the assigned section
   for (int noteIndex = start; noteIndex < end; noteIndex++){
-     //Grab correct tones and durations for current, previous, and note before previous 	
+    //Grab correct tones and durations for current, previous, and note before previous 	
   	prevTone1 = curTone;
     curTone = part[noteIndex].tone;
   
@@ -340,7 +340,7 @@ void normalizeCuda(){
 
   cudaSetDevice(MAJOR_HIGH_DEVICE);
   
-  thrust::device_ptr<float> thrust_majorHigh((float *)deviceMajorHighNotes);
+  thrust::device_ptr<float> thrust_majorHigh(deviceMajorHighNotes);
   // --- Allocate space for row sums and indices
   thrust::device_vector<float> d_row_sums(Nrows);
   thrust::device_vector<int> d_row_indices(Nrows);

@@ -4,7 +4,9 @@
 #include "training.h"
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 using namespace std;
 
 //Define global variables
@@ -42,6 +44,8 @@ void outputMatrices() {
 	}
 	outFile.close();
 
+  printf("Printing 2/6 complete\n");
+
 	outFile.open("majorChordMatrixNew.txt");
 	for (int i = 0; i < NUM_CHORDS; i ++){
 		for (int j = 0; j < NUM_CHORDS; j++){
@@ -50,6 +54,8 @@ void outputMatrices() {
 		outFile << "\n";
 	}
 	outFile.close();
+
+  printf("Printing 3/6 complete\n");
 
   outFile.open("minorHighMatrixNew.txt");
   for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
@@ -60,6 +66,8 @@ void outputMatrices() {
   }
   outFile.close();
 
+  printf("Printing 4/6 complete\n");
+
   outFile.open("minorLowMatrixNew.txt");
   for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
     for (int j = 0; j < NUM_NOTES; j++){
@@ -69,6 +77,8 @@ void outputMatrices() {
   }
   outFile.close();
 
+  printf("Printing 5/6 complete\n");
+
   outFile.open("minorChordMatrixNew.txt");
   for (int i = 0; i < NUM_CHORDS; i ++){
     for (int j = 0; j < NUM_CHORDS; j++){
@@ -77,6 +87,8 @@ void outputMatrices() {
     outFile << "\n";
   }
   outFile.close();
+
+  printf("Printing 6/6 complete\n");
 
   //Remove all old files, and replace with the new matrix files
   remove("majorHighMatrix.txt");
@@ -92,6 +104,8 @@ void outputMatrices() {
   std::rename("minorLowMatrixNew.txt", "minorLowMatrix.txt");
   std::rename("minorChordMatrixNew.txt", "minorChordMatrix.txt");
 
+  printf("File renaming complete\n");
+
   //Free all host matrices
   free(majorHighNotes);
   free(majorLowNotes);
@@ -105,13 +119,16 @@ void outputMatrices() {
  * @brief Sets up and calls functions to create matrices from input files given in command line
  * 
  * @param argc nunmber of command line arguments
- * @param argv array of command line arguments, where every argument is a path to an input file
+ * @param argv array of command line arguments, where the one arguement is a directory
+ * containing all wanted input files
  */
 int main(int argc, char** argv) {
 
-  //If there are no files to look at, stop
-  if (argc <= 1)
+  //If there is not a directory to look at, stop
+  if (argc != 2) {
+    prtinf("Improperly formatted command line input (give one diretory path)\n");
     return 0;
+  }
 
   //Allocate memory for all final host matrices
   majorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
@@ -128,19 +145,21 @@ int main(int argc, char** argv) {
 	sound_t* bass = (sound_t *) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
   int maxLen = INIT_ARRAY_LENGTH;
 
+  prinf("Begin parsing files \n");
+
   //Loop through all given input files, parse file, and add count to device matrices
-	for(int fileIndex = 1; fileIndex < argc; fileIndex++){
+	for(auto& filePath : fs::directory_iterator(argv[1])){
     int sLen = 0;
     int bLen = 0;
     std::string mood;
     int currentPart;
 
 		std::string fileLine;
-    std::ifstream file(argv[fileIndex]);
+    std::ifstream file(filePath.path());
     std::size_t found;
 
     if (!file){ //Throw error if file not found
-    	std::cerr << "Cannot open file : " <<argv[fileIndex]<<std::endl;
+    	std::cerr << "Cannot open file : " <<filePath.path()<<std::endl;
     	return false;
     }
 
@@ -173,8 +192,6 @@ int main(int argc, char** argv) {
         }
     	}
     }
-
-    printf("Start counting transitions \n");
     countTransitionsCuda(soprano, sLen, bass, bLen, mood);
   }
 
