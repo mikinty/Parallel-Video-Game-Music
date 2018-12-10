@@ -10,7 +10,7 @@ on its side
 	Parts Split - Picked at mixing screen, used by server if not default
 	Tempo - Picked at mixing screen, only used by client
 	Instrumentation - Picked at mixing screen, only used by client
-	Tonic? - Currently random, could be picked at start screen and sent to server
+	Tonic - Picked at mixing screen, only used by client
 	Time Signature - Currently 4/4, could be picked at start screen and sent to server
 """
 
@@ -21,10 +21,6 @@ MAJORCHORD = 'majorChordMatrix.txt'
 MINORHIGH = 'minorHighMatrix.txt'
 MINORLOW = 'minorLowMatrix.txt'
 MINORCHORD = 'minorChordMatrix.txt'
-
-#Music settings
-NUMMEASURES = 4
-BEATSPERMEASURE = 4
 
 #Sets up and establishes link between server and client
 def initServerLink():
@@ -46,16 +42,17 @@ def closeServerLink():
 #Determines if the client wants to stop music
 #Returns either true or false
 def endMusic():
-	return true
+	return false
 
 #Receives information about the number of soprano, bass, and chord
 #voices wanted and sets that up
 #Returns array representing the parts wanted
 def receivePartsSplit():
-	return parts
+	return
 
 #Send NUMMEASURES total measures of music to client, stored in music
 def sendMusic():
+	print(music)
 	return
 
 #Array of music generated, assuming 4/4 time signature
@@ -69,9 +66,6 @@ chords = None
 
 #Array of parts, where 0 = chord, 1 = bass, 2 = soprano, -1 = silent
 parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
-
-#Pick a random tonic note 0 = C, 11 = B
-tonic = random.randint(0, 11)
 
 #Establish Server-Client link
 initServerLink()
@@ -107,4 +101,3 @@ while(true)
 
 	#Sends music messages
 	sendMusic()
-
