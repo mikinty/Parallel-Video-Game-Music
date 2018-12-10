@@ -113,7 +113,7 @@ void CountSection(sound_t* part, int length, int* deviceMatrix)
     curDur = part[noteIndex].duration;
     
     int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-    atomicAdd(deviceMatrix + cell, 1);
+    deviceMatrix[cell]++;   
   } 
 }
 
@@ -168,7 +168,7 @@ void CountChordSection(sound_t* deviceS, int sLength, sound_t* deviceB, int bLen
     int cell; //matrix index to insert into
     if (curTone >= CHORD_OFFSET) { //insert into chord matrix
       cell = findChordCell(curTone, prevTone1);
-      atomicAdd(deviceMatrix + cell, 1);
+      deviceMatrix[cell]++;
     }
   } 
 }
