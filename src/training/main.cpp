@@ -8,12 +8,12 @@
 using namespace std;
 
 //Define global variables
-float* majorHighNotes;
-float* majorLowNotes;
-float* majorChords;
-float* minorHighNotes;
-float* minorLowNotes;
-float* minorChords;
+int* majorHighNotes;
+int* majorLowNotes;
+int* majorChords;
+int* minorHighNotes;
+int* minorLowNotes;
+int* minorChords;
 
 /**
  * @brief Outputs matrices to files
@@ -114,12 +114,12 @@ int main(int argc, char** argv) {
     return 0;
 
   //Allocate memory for all final host matrices
-  majorHighNotes = (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  majorLowNotes =  (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  majorChords =  (float *) malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
-  minorHighNotes = (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  minorLowNotes =  (float *) malloc(sizeof(float) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  minorChords =  (float *) malloc(sizeof(float) * (NUM_CHORDS * NUM_CHORDS));
+  majorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorLowNotes =  (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
+  minorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorLowNotes =  (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
 
   initCuda();
 
@@ -168,8 +168,8 @@ int main(int argc, char** argv) {
         //If the notes run past the array length, re-allocate for more space
         if (bLen >= maxLen || sLen >= maxLen){
       		maxLen = maxLen * 2;
-    				soprano = (sound_t *) realloc(soprano, sizeof(sound_t) * maxLen);
-          	bass = (sound_t *) realloc(bass, sizeof(sound_t) * maxLen);
+  				soprano = (sound_t *) realloc(soprano, sizeof(sound_t) * maxLen);
+         	bass = (sound_t *) realloc(bass, sizeof(sound_t) * maxLen);
         }
     	}
     }
@@ -178,24 +178,21 @@ int main(int argc, char** argv) {
     countTransitionsCuda(soprano, sLen, bass, bLen, mood);
   }
 
+  synchAllCuda();
   printf("Finished counting transitions \n");
 
   //Free the arrays used to parse input files
   free(soprano);
   free(bass);
 
-  printf("Start normalization and copying to host \n");
-
-  //Normalize the transition matrices and move to host
-  normalizeCuda();
-
-  printf("Finished normalization and copying to host \n");
+  printf("Start copying to host \n");
+  cudaToHost();
+  synchAllCuda();
 
   //Free all device memory
   freeCuda();
 
   printf("Start outputting matrices \n");
-
   //output matrices to files
   outputMatrices();
 

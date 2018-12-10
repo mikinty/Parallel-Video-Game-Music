@@ -7,22 +7,29 @@
 #define NUM_THREADS 16
 #define INIT_ARRAY_LENGTH 1000
 #define NUM_NOTES NUM_TONES * NUM_DUR
+/* CUDA GPU Device Ids */
+#define MAJOR_HIGH_DEVICE 0
+#define MAJOR_LOW_DEVICE 1
+#define MAJOR_CHORD_DEVICE 2
+#define MINOR_HIGH_DEVICE 3
+#define MINOR_LOW_DEVICE 4
+#define MINOR_CHORD_DEVICE 5
 
 //Host matrices to be created + outputted to files
-extern float* majorHighNotes;
-extern float* majorLowNotes;
-extern float* majorChords;
-extern float* minorHighNotes;
-extern float* minorLowNotes;
-extern float* minorChords;
+extern int* majorHighNotes;
+extern int* majorLowNotes;
+extern int* majorChords;
+extern int* minorHighNotes;
+extern int* minorLowNotes;
+extern int* minorChords;
 
 //Device matrices mirroring host matrices above
-extern float* deviceMajorHighNotes;
-extern float* deviceMajorLowNotes;
-extern float* deviceMajorChords;
-extern float* deviceMinorHighNotes;
-extern float* deviceMinorLowNotes;
-extern float* deviceMinorChords;
+extern int* deviceMajorHighNotes;
+extern int* deviceMajorLowNotes;
+extern int* deviceMajorChords;
+extern int* deviceMinorHighNotes;
+extern int* deviceMinorLowNotes;
+extern int* deviceMinorChords;
 
 //Struct describing a note/chord from the input files
 struct sound_t {
@@ -33,4 +40,5 @@ struct sound_t {
 void initCuda();
 void freeCuda();
 void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, std::string mood);
-void normalizeCuda();
+void synchAllCuda();
+void cudaToHost();
