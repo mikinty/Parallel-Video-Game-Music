@@ -2,6 +2,24 @@
 layout: default
 ---
 
-# 15-418 Final Project
+# Abstract
+
+# Introduction
+
+# Implementation
+
+## Training
+
+## Generation
+
+### Server
+
+### Client
+
+## Results
+
+## Discussion
+
+## Conclusion
 
 TBD
