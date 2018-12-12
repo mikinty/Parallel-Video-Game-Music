@@ -12,7 +12,7 @@ import music21
 import glob
 
 # Convert files in directory
-for f in glob.glob("TEST\**\*.mid", recursive=True):
+for f in glob.glob("MIDI\\Mario-Sheet-Music-Overworld-Main-Theme.mid", recursive=True):
   print('Converting', f)
 
   # output file
@@ -112,5 +112,7 @@ for f in glob.glob("TEST\**\*.mid", recursive=True):
   fo.close()
 
   print('Saved', newFileName)
+
+  break
 
 print("Done converting files")
