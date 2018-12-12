@@ -37,6 +37,8 @@ Before we can do any training, we need to preprocess our MIDIs into a format our
 
 ### Client
 
+The client takes in user input to build a music request to the server.
+
 # Results
 
 Our speedup results indicate...
