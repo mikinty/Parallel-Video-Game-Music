@@ -11,8 +11,6 @@ from CONST import *
 import music21
 import glob
 
-i = 0
-
 # Convert files in directory
 for f in glob.glob("MIDI\\*.mid", recursive=True):
   print('Converting', f)
@@ -115,9 +113,5 @@ for f in glob.glob("MIDI\\*.mid", recursive=True):
 
   print('Saved', newFileName)
 
-  i += 1
-
-  if i > 10:
-    break
 
 print("Done converting files")
