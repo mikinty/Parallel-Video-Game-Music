@@ -19,11 +19,15 @@ In a Markov Model, multiple matrices are built from training data, or files of m
 Our project consisted of two major portions:
 
 1. Training: preprocessing MIDI files and training a Markov Model based on these MIDI files.
-2. Generation: using the Markov Model that was trained to generate music. 
+2. Generation: using the Markov Model that was trained to generate music.
+
+
 
 ## Training
 
 ### Preprocessing
+
+Before we can do any training, we need to preprocess our MIDIs into a format our training algorithm can easily parse, since MIDIs themselves are very complicated, and contain many components that we would not want to have to deal with  
 
 ### Markov Model
 
@@ -36,6 +40,8 @@ Our project consisted of two major portions:
 # Results
 
 Our speedup results indicate...
+
+How does our music sound?
 
 # Conclusion
 
