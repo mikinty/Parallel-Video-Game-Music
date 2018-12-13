@@ -15,6 +15,11 @@ int* minorHighNotes;
 int* minorLowNotes;
 int* minorChords;
 
+sound_t* majorSoprano;
+sound_t* majorBass;
+sound_t* minorSoprano;
+sound_t* minorBass;
+
 /**
  * @brief Outputs matrices to files
  */
@@ -105,11 +110,11 @@ void outputMatrices() {
   printf("File renaming complete\n");
 
   //Free all host matrices
-  free(majorHighNotes);
-  free(majorLowNotes);
+  cudaFreeHost(majorHighNotes);
+  cudaFreeHost(majorLowNotes);
   free(majorChords);
-  free(minorHighNotes);
-  free(minorLowNotes);
+  cudaFreeHost(minorHighNotes);
+  cudaFreeHost(minorLowNotes);
   free(minorChords);
 }
 
@@ -117,97 +122,137 @@ void outputMatrices() {
  * @brief Sets up and calls functions to create matrices from input files given in command line
  * 
  * @param argc nunmber of command line arguments
- * @param argv array of command line arguments, where the one arguement is a directory
- * containing all wanted input files
+ * @param argv array of command line arguments, where the first is the major files, second is minor files
  */
 int main(int argc, char** argv) {
 
   //If there is not a directory to look at, stop
-  if (argc != 2) {
-    printf("Improperly formatted command line input (give one file path)\n");
+  if (argc != 3) {
+    printf("Improperly formatted command line input (give two file paths)\n");
     return 0;
   }
 
   //Allocate memory for all final host matrices
-  majorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  majorLowNotes =  (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  cudaHostAlloc(&majorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&majorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
   majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
-  minorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
-  minorLowNotes =  (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  cudaHostAlloc(&minorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&minorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
   minorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
 
   initCuda();
 
-  //Arrays of notes read from files, initialized to INIT_ARRAY_LENGTH (1000) in length
-  sound_t* soprano = (sound_t*) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
-	sound_t* bass = (sound_t *) malloc(sizeof(sound_t) * INIT_ARRAY_LENGTH);
+  //Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
+  cudaHostAlloc(&majorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+	cudaHostAlloc(&majorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  cudaHostAlloc(&minorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  cudaHostAlloc(&minorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
 
   std::string fileLine;
-  std::ifstream file(argv[1]);
+  std::ifstream majorFile(argv[1]);
+  std::ifstream minorFile(argv[2]);
   std::size_t found;
 
+  int minorPart; //part the minor file is on
+  int majorPart; //part the major file is on
+  int mood = 0; // 0 = major, 1 = minor
+  int endFile = 0;
   int sLen = 0;
   int bLen = 0;
-  std::string mood;
-  int currentPart;
 
-  if (!file){ //Throw error if file not found
-    std::cerr << "Cannot open file : " <<argv[1]<<std::endl;
+  if (!majorFile || !minorFile){ //Throw error if file not found
+    std::cerr << "Cannot open file " <<std::endl;
     return false;
   }
+
   printf("Begin parsing files \n");
 
   //Loop through all given input files, parse file, and add count to device matrices
-	while(std::getline(file, fileLine)) {//Run through all lines in file
-    if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
-      currentPart = 1;
+  while (endFile != 2) { //Keep looping until both files are finished
+    if (mood == 0) { //major case
+      if (!std::getline(majorFile, fileLine)) { //invalid line, switch to finish other side
+        countTransitionsCuda(majorSoprano, sLen, majorBass, bLen, mood);
+        sLen = 0;
+        bLen = 0;
+        mood = 1;
+        endFile++;
+        //Wait for minor stream to open up before overwriting
+        cudaStreamSynch(mood);
+        break;
+      }
+      if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
+        majorPart = 1;
+      }
+      else if (fileLine.find('L') != std::string::npos){
+        majorPart = 0;
+      }
+      else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
+        if (majorPart == 0){
+          majorBass[bLen].tone = std::stoi(fileLine.substr(0, found));
+          majorBass[bLen].duration = std::stoi(fileLine.substr(found+1));
+          bLen ++;
+        }
+        else {
+        majorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
+        majorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
+        sLen ++;
+      }
+      //If the notes run past the array length, send array over and switch maj/min
+      if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH){
+        countTransitionsCuda(majorSoprano, sLen, majorBass, bLen, mood);
+        sLen = 0;
+        bLen = 0;
+        mood = 1;
+        //Wait for minor stream to open up before overwriting
+        cudaStreamSynch(mood);
+        break;
+      }
     }
-    else if (fileLine.find('L') != std::string::npos){
-    	currentPart = 0;
-    }
-    else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
-      	if (currentPart == 0){
-      		bass[bLen].tone = std::stoi(fileLine.substr(0, found));
-      		bass[bLen].duration = std::stoi(fileLine.substr(found+1));
-      		bLen ++;
-      	}
-      	else{
-      		soprano[sLen].tone = std::stoi(fileLine.substr(0, found));
-      		soprano[sLen].duration = std::stoi(fileLine.substr(found+1));
-      		sLen ++;
-    		}
-    }
-    else if (fileLine.find('m') != std::string::npos) { //Switch mood
-      //Insert current running notes, and reset
-      if (sLen > 0 || bLen > 0)
-        countTransitionsCuda(soprano, sLen, bass, bLen, mood);
-      mood = fileLine;
-      sLen = 0;
-      bLen = 0;
-    }
-  
-    //If the notes run past the array length, send array over
-    if (bLen >= INIT_ARRAY_LENGTH || sLen >= INIT_ARRAY_LENGTH){
-      countTransitionsCuda(soprano, sLen, bass, bLen, mood);
-      sLen = 0;
-      bLen = 0;
-    }
+    else { //minor case
+      if (!std::getline(minorFile, fileLine)) { //invalid line, switch to finish other side
+        countTransitionsCuda(minorSoprano, sLen, minorBass, bLen, mood);
+        sLen = 0;
+        bLen = 0;
+        mood = 0;
+        endFile++;
+        //Wait for major stream to open up before overwriting
+        cudaStreamSynch(mood);
+        break;
+      }
+      if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
+        minorPart = 1;
+      }
+      else if (fileLine.find('L') != std::string::npos){
+        minorPart = 0;
+      }
+      else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
+        if (minorPart == 0) {
+          minorBass[bLen].tone = std::stoi(fileLine.substr(0, found));
+          minorBass[bLen].duration = std::stoi(fileLine.substr(found+1));
+          bLen ++;
+        }
+        else {
+        minorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
+        minorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
+        sLen ++;
+      }
+      //If the notes run past the array length, send array over and switch maj/min
+      if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH){
+        countTransitionsCuda(minorSoprano, sLen, minorBass, bLen, mood);
+        sLen = 0;
+        bLen = 0;
+        mood = 0;
+        //Wait for major stream to open up before overwriting
+        cudaStreamSynch(mood);
+        break;
+      }
+    }   
   }
-
-  //Send over any extra notes
-  if (sLen > 0 || bLen > 0)
-    countTransitionsCuda(soprano, sLen, bass, bLen, mood);
  
-  synchAllCuda();
-  printf("Finished counting transitions \n");
+  printf("Finished queuing transitions \n");
 
-  //Free the arrays used to parse input files
-  free(soprano);
-  free(bass);
-
-  printf("Start copying to host \n");
   cudaToHost();
-  synchAllCuda();
+  printf("Finished copying to host \n");
 
   //Free all device memory
   freeCuda();
@@ -217,4 +262,5 @@ int main(int argc, char** argv) {
   outputMatrices();
 
   return 0;
+    }
 }

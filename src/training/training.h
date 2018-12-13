@@ -4,16 +4,20 @@
 /* All chord numbers are offsetted by +101 */
 #define CHORD_OFFSET 101
 /* num threads per block */
-#define NUM_THREADS 1000
-#define INIT_ARRAY_LENGTH 100000 
+#define NUM_THREADS 1024
+#define ARRAY_LENGTH 100000
 #define NUM_NOTES NUM_TONES * NUM_DUR
+/*Constants regarding matrices*/
+#define NUM_MATRICES 6
+#define NUM_GPU_PER_MATRIX 6
+#define MATRIX_BLOCK_ROWS (NUM_NOTES * NUM_NOTES + NUM_GPU_PER_MATRIX - 1) / NUM_GPU_PER_MATRIX
 /* CUDA GPU Device Ids */
 #define MAJOR_HIGH_DEVICE 0
-#define MAJOR_LOW_DEVICE 1
-#define MAJOR_CHORD_DEVICE 2
-#define MINOR_HIGH_DEVICE 3
-#define MINOR_LOW_DEVICE 4
-#define MINOR_CHORD_DEVICE 5
+#define MAJOR_LOW_DEVICE MAJOR_HIGH_DEVICE + NUM_GPU_PER_MATRIX
+#define MINOR_HIGH_DEVICE MAJOR_LOW_DEVICE + NUM_GPU_PER_MATRIX
+#define MINOR_LOW_DEVICE MINOR_HIGH_DEVICE + NUM_GPU_PER_MATRIX
+#define MAJOR_CHORD_DEVICE MINOR_LOW_DEVICE + NUM_GPU_PER_MATRIX
+#define MINOR_CHORD_DEVICE MAJOR_CHORD_DEVICE + 1
 
 //Host matrices to be created + outputted to files
 extern int* majorHighNotes;
@@ -23,13 +27,35 @@ extern int* minorHighNotes;
 extern int* minorLowNotes;
 extern int* minorChords;
 
+//Host note arrays
+extern sound_t* majorSoprano;
+extern sound_t* majorBass;
+extern sound_t* minorSoprano;
+extern sound_t* minorBass;
+
 //Device matrices mirroring host matrices above
-extern int* deviceMajorHighNotes;
-extern int* deviceMajorLowNotes;
+extern int* deviceMajorHighNotes[NUM_GPU_PER_MATRIX];
+extern int* deviceMajorLowNotes[NUM_GPU_PER_MATRIX];
 extern int* deviceMajorChords;
-extern int* deviceMinorHighNotes;
-extern int* deviceMinorLowNotes;
+extern int* deviceMinorHighNotes[NUM_GPU_PER_MATRIX];
+extern int* deviceMinorLowNotes[NUM_GPU_PER_MATRIX];
 extern int* deviceMinorChords;
+
+//Device note arrays, with a +1 for the chord GPU
+extern sound_t* deviceMajorSoprano[NUM_GPU_PER_MATRIX + 1];
+extern sound_t* deviceMajorBass[NUM_GPU_PER_MATRIX + 1];
+extern sound_t* deviceMinorSoprano[NUM_GPU_PER_MATRIX + 1];
+extern sound_t* deviceMinorBass[NUM_GPU_PER_MATRIX + 1];
+
+//Cuda Streams for all devices
+extern cudaStream_t majorHighStream[NUM_GPU_PER_MATRIX];
+extern cudaStream_t majorLowStream[NUM_GPU_PER_MATRIX];
+extern cudaStream_t majorChordSStream;
+extern cudaStream_t majorChordBStream;
+extern cudaStream_t minorHighStream[NUM_GPU_PER_MATRIX];
+extern cudaStream_t minorLowStream[NUM_GPU_PER_MATRIX];
+extern cudaStream_t minorChordSStream;
+extern cudaStream_t minorChordBStream;
 
 //Struct describing a note/chord from the input files
 struct sound_t {
@@ -39,6 +65,6 @@ struct sound_t {
 
 void initCuda();
 void freeCuda();
-void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, std::string mood);
-void synchAllCuda();
+void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLength, int mood);
+void cudaStreamSynch(int mood);
 void cudaToHost();
