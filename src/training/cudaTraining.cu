@@ -79,7 +79,7 @@ inline int findChordCell(int curTone, int prevTone){
     prevTone = prevTone - CHORD_OFFSET; //shift chord down
   }
   else { //is a note
-    prevTone = prevTone % 12;
+    prevTone = prevTone % 12 + 12 * (prevTone % 12) + 144 * (prevTone % 12);
   }
   
   return prevTone * NUM_CHORDS + (curTone - CHORD_OFFSET);
