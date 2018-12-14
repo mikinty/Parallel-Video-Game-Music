@@ -30,10 +30,6 @@ for f in glob.glob("MIDI/*.mid", recursive=True):
     print('Parsing', f, 'failed')
     continue
 
-
-  # output file
-  fo = open(newFileName, 'w')
-
   key = score.analyze('key')
   mode = key.mode
 
@@ -43,9 +39,15 @@ for f in glob.glob("MIDI/*.mid", recursive=True):
   elif mode == "minor":
     halfSteps = minors[key.tonic.name]
 
-  newscore = score.transpose(halfSteps)
+  try:
+    newscore = score.transpose(halfSteps)
+  except:
+    print('Tranposing', f, 'failed')
+    continue
 
   ### Now, print out score in our text format ###
+  # output file
+  fo = open(newFileName, 'w')
 
   # Major/Minor
   print(mode, file=fo)
