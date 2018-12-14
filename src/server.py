@@ -27,7 +27,7 @@ def getNotes():
     [44, 5],
     [36, 4]
   ]
-  print('te')
+
   return json.dumps({'id': transactionID, 'notes': testNotes})
 
 
