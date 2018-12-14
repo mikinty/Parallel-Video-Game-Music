@@ -9,6 +9,21 @@ const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
 // listen to websocket events
 ws.onmessage = (event) => {
   console.log(event);
+  console.log()
+  var notes = JSON.parse(event.data).notes;
+
+  var currTime = 0;
+
+  for (let i = 0; i < notes.length; i++) {
+    console.log(currTime);
+    synth.triggerAttackRelease (
+      CONST.NOTE_MAPPINGS[notes[i][0]], 
+      CONST.NOTE_DURATIONS[notes[i][1]],
+      currTime
+    );
+
+    currTime = currTime + CONST.NOTE_DURATIONS[notes[i][1]];
+  }
 }
 
 export default class RadioSelect extends React.Component {
