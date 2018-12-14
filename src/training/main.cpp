@@ -193,16 +193,17 @@ int main(int argc, char** argv) {
         endFile++;
         //Wait for minor stream to open up before overwriting
         cudaStreamSynch(mood);
-        break;
+        continue;
       }
+      found = fileLine.find(' ');
       if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
         majorPart = 1;
       }
       else if (fileLine.find('L') != std::string::npos){
         majorPart = 0;
       }
-      else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
-        if (majorPart == 0){
+      else if (found != std::string::npos){ //insert into correct notes line
+        if (majorPart == 0){   
           majorBass[bLen].tone = std::stoi(fileLine.substr(0, found));
           majorBass[bLen].duration = std::stoi(fileLine.substr(found+1));
           bLen ++;
@@ -221,7 +222,7 @@ int main(int argc, char** argv) {
         mood = 1;
         //Wait for minor stream to open up before overwriting
         cudaStreamSynch(mood);
-        break;
+        continue;
       }
     }
     else { //minor case
@@ -233,15 +234,16 @@ int main(int argc, char** argv) {
         endFile++;
         //Wait for major stream to open up before overwriting
         cudaStreamSynch(mood);
-        break;
+        continue;
       }
+      found = fileLine.find(' ');
       if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
         minorPart = 1;
       }
       else if (fileLine.find('L') != std::string::npos){
         minorPart = 0;
       }
-      else if (found = fileLine.find(' ') != std::string::npos){ //insert into correct notes line
+      else if (found != std::string::npos){ //insert into correct notes line
         if (minorPart == 0) {
           minorBass[bLen].tone = std::stoi(fileLine.substr(0, found));
           minorBass[bLen].duration = std::stoi(fileLine.substr(found+1));
@@ -261,7 +263,7 @@ int main(int argc, char** argv) {
         mood = 0;
         //Wait for major stream to open up before overwriting
         cudaStreamSynch(mood);
-        break;
+        continue;
       }
     }   
   }

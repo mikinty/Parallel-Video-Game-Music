@@ -149,7 +149,7 @@ void CountChordSection(sound_t* part, int length, int* deviceMatrix)
 {
   //Bounds for section to read based on threadId
   int start;
-  int end;
+  int end; 
 
   //Determine proper start and end bounds
   start = threadIdx.x * (length / NUM_THREADS) + 2;
@@ -168,7 +168,7 @@ void CountChordSection(sound_t* part, int length, int* deviceMatrix)
     //Grab correct tones and durations for current, previous, and note before previous 	
   	prevTone1 = curTone;
     curTone = part[noteIndex].tone;
-  
+
     int cell; //matrix index to insert into
     if (curTone >= CHORD_OFFSET) { //insert into chord matrix
       cell = findChordCell(curTone, prevTone1);
@@ -344,7 +344,7 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
       cudaSetDevice(offsetGPU + MINOR_HIGH_DEVICE);
       cudaMemcpyAsync(deviceMinorSoprano[offsetGPU], soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice, minorHighStream[offsetGPU]);
       CountNoteSection<<<1, NUM_THREADS, 0, minorHighStream[offsetGPU]>>>(deviceMinorSoprano[offsetGPU], sLength, deviceMinorHighNotes[offsetGPU], offsetGPU);
-   
+
       cudaSetDevice(offsetGPU + MINOR_LOW_DEVICE);
       cudaMemcpyAsync(deviceMinorBass[offsetGPU], bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice, minorLowStream[offsetGPU]);
       CountNoteSection<<<1, NUM_THREADS, 0, minorLowStream[offsetGPU]>>>(deviceMinorBass[offsetGPU], bLength, deviceMinorLowNotes[offsetGPU], offsetGPU);
