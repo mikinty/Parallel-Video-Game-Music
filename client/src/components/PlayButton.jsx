@@ -1,6 +1,7 @@
 import React from 'react';
 import Tone from 'tone';
 import * as SECRET from '../KEY';
+import * as CONST from '../CONST';
 
 const synth = new Tone.Synth();
 const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
@@ -22,7 +23,10 @@ export default class RadioSelect extends React.Component {
   // Called when we click play
   handleClick () {
     synth.triggerAttackRelease("C4", 0.25);
-    ws.send('TODD MOWRY IS THE BEST');
+    ws.send(JSON.stringify({
+      request: CONST.START_MUSIC_REQ,
+      data: 'TODD MOWRY IS THE BEST'
+    }));
   }
 
   render() {
