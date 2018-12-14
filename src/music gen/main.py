@@ -1,5 +1,8 @@
 import numpy as np
 import musicGenParallel as mgp
+import asyncio
+import websockets
+import json
 
 """Settings Client Picks:
 Note that certain settings do not affect (note, duration) choices,
@@ -22,42 +25,8 @@ MINORHIGH = 'minorHighMatrix.txt'
 MINORLOW = 'minorLowMatrix.txt'
 MINORCHORD = 'minorChordMatrix.txt'
 
-#Sets up and establishes link between server and client
-def initServerLink():
-	return
-
-#Waits for the client to send over choice of major or minor
-#Returns either 0 (minor) or 1 (major)
-def receiveMajorMinor():
-	return 1
-
-#Sends message to client noting an error has occured, and to close link + retry
-def sendErrorMessage():
-	return
-
-#Closes link between server and client
-def closeServerLink():
-	return
-
-#Determines if the client wants to stop music
-#Returns either true or false
-def endMusic():
-	return false
-
-#Receives information about the number of soprano, bass, and chord
-#voices wanted and sets that up
-#Returns array representing the parts wanted
-def receivePartsSplit():
-	return
-
-#Send NUMMEASURES total measures of music to client, stored in music
-def sendMusic():
-	print(music)
-	return
-
-#Array of music generated, assuming 4/4 time signature
-#2D array of (note, duration) pairs split by parts (up to 10)
-music = None
+# remember what number requests are
+transactionID = 0
 
 #Global Variables - Matrices
 highNotes = None
@@ -67,37 +36,74 @@ chords = None
 #Array of parts, where 0 = chord, 1 = bass, 2 = soprano, -1 = silent
 parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
 
-#Establish Server-Client link
-initServerLink()
+#Keeps track of major (0) /minor (1)
+mood = 0 
 
-#Wait to receive major/minor choice from client
-mood = receiveMajorMinor() #0 = minor, 1 = major
+#Random tonic note to start on
 
-#Reads in chord, high melody, and low melody matrices of the proper mood
-if mood == 0: #minor
-	highNotes = np.loadtxt(minorHighMatrix, dtype = np.float64, delminter = ' ')
-	lowNotes = np.loadtxt(minorLowMatrix, dtype = np.float64, delminter = ' ')
-	chords = np.loadtxt(minorChordMatrix, dtype = np.float64, delminter = ' ')
-else if mood == 1: #major
-	highNotes = np.loadtxt(majorHighMatrix, dtype = np.float64, delminter = ' ')
-	lowNotes = np.loadtxt(majorLowMatrix, dtype = np.float64, delminter = ' ')
-	chords = np.loadtxt(majorChordMatrix, dtype = np.float64, delminter = ' ')
-else: #error - not a valid mood
-	sendErrorMessage()
-	closeServerLink()
+#Receives information about the number of soprano, bass, and chord
+#voices wanted and sets that up
+#Returns array representing the parts wanted
+def receivePartsSplit():
 	return
 
-while(true)
-	#If client says to stop music, we stop and close link
-	if endMusic():
-		closeServerLink()
-		return
-
-	#If client says to change parts split, modify parts array
-	receivePartsSplit()
-
+def getNotes():
+  '''
+  Returns the generated notes.
+  returns: json of notes and corresponding transaction ID
+  '''
+  #Array of music generated, assuming 4/4 time signature
+	#2D array of (note, duration) pairs split by parts (up to 10)
 	#Calls GPUs to generate measures of music
-	music = mgp.generateMusic(highNotes, lowNotes, chords, parts, tonic, mood)
+	music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood)
 
-	#Sends music messages
-	sendMusic()
+	return json.dumps({'id': transactionID, 'notes': music})
+
+async def main(websocket, path):
+  '''
+  Client-facing function that:
+    1. Handles client music requests
+    2. Updates Transaction ID
+    3. Triggers music generation
+    4. Sends back generated music to client
+  '''
+  
+  global transactionID
+
+  # TODO: use try catches for more robust server, but for
+  # now we need to seee what the actual errors are...
+  # try:
+  async for message in websocket:
+    data = json.loads(message)
+
+    if data['request'] == 'START_MUSIC':
+      print('Received new music request', transactionID)
+      transactionID += 1
+      
+      try:
+        await websocket.send(getNotes())
+      except:
+        print('Error getting notes')
+    else if data['request'] == 'SET_MAJOR':
+    	mood = 0
+    	highNotes = np.loadtxt(majorHighMatrix, dtype = np.int32, delminter = ' ')
+			lowNotes = np.loadtxt(majorLowMatrix, dtype = np.int32, delminter = ' ')
+			chords = np.loadtxt(majorChordMatrix, dtype = np.int32, delminter = ' ')
+    else if data['request'] == 'SET_MINOR':
+    	mood = 1
+    	highNotes = np.loadtxt(minorHighMatrix, dtype = np.int32, delminter = ' ')
+			lowNotes = np.loadtxt(minorLowMatrix, dtype = np.int32, delminter = ' ')
+			chords = np.loadtxt(minorChordMatrix, dtype = np.int32, delminter = ' ')
+    else if data['request'] == 'SET_PARTS':
+    	#Set the parts array to the array given by client
+    	parts = np.array(data['info']); 
+    else:
+      print('Unknown request')
+
+  #except:
+  #  print('SERVER ERROR')
+
+start_server = websockets.serve(main, '0.0.0.0', 80)
+
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
