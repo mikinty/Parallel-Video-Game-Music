@@ -1,7 +1,14 @@
 import React from 'react';
 import Tone from 'tone';
+import * as SECRET from '../KEY';
 
-const synth = new Tone.Synth()
+const synth = new Tone.Synth();
+const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
+
+// listen to websocket events
+ws.onmessage = (event) => {
+  console.log(event);
+}
 
 export default class RadioSelect extends React.Component {
   constructor () {
@@ -15,6 +22,7 @@ export default class RadioSelect extends React.Component {
   // Called when we click play
   handleClick () {
     synth.triggerAttackRelease("C4", 0.25);
+    ws.send('TODD MOWRY IS THE BEST');
   }
 
   render() {
