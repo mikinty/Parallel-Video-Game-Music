@@ -39,14 +39,6 @@ parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
 #Keeps track of major (0) /minor (1)
 mood = 0 
 
-#Random tonic note to start on
-
-#Receives information about the number of soprano, bass, and chord
-#voices wanted and sets that up
-#Returns array representing the parts wanted
-def receivePartsSplit():
-	return
-
 def getNotes():
   '''
   Returns the generated notes.
@@ -55,9 +47,9 @@ def getNotes():
   #Array of music generated, assuming 4/4 time signature
 	#2D array of (note, duration) pairs split by parts (up to 10)
 	#Calls GPUs to generate measures of music
-	music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood)
+  music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood)
 
-	return json.dumps({'id': transactionID, 'notes': music})
+  return json.dumps({'id': transactionID, 'notes': music})
 
 async def main(websocket, path):
   '''
@@ -84,17 +76,17 @@ async def main(websocket, path):
         await websocket.send(getNotes())
       except:
         print('Error getting notes')
-    else if data['request'] == 'SET_MAJOR':
-    	mood = 0
-    	highNotes = np.loadtxt(majorHighMatrix, dtype = np.int32, delminter = ' ')
-			lowNotes = np.loadtxt(majorLowMatrix, dtype = np.int32, delminter = ' ')
-			chords = np.loadtxt(majorChordMatrix, dtype = np.int32, delminter = ' ')
-    else if data['request'] == 'SET_MINOR':
-    	mood = 1
-    	highNotes = np.loadtxt(minorHighMatrix, dtype = np.int32, delminter = ' ')
-			lowNotes = np.loadtxt(minorLowMatrix, dtype = np.int32, delminter = ' ')
-			chords = np.loadtxt(minorChordMatrix, dtype = np.int32, delminter = ' ')
-    else if data['request'] == 'SET_PARTS':
+    elif data['request'] == 'SET_MAJOR':
+      mood = 0
+      highNotes = np.loadtxt(majorHighMatrix, dtype = np.int32, deliminter = ' ')
+      lowNotes = np.loadtxt(majorLowMatrix, dtype = np.int32, deliminter = ' ')
+      chords = np.loadtxt(majorChordMatrix, dtype = np.int32, deliminter = ' ')
+    elif data['request'] == 'SET_MINOR':
+      mood = 1
+      highNotes = np.loadtxt(minorHighMatrix, dtype = np.int32, deliminter = ' ')
+      lowNotes = np.loadtxt(minorLowMatrix, dtype = np.int32, deliminter = ' ')
+      chords = np.loadtxt(minorChordMatrix, dtype = np.int32, deliminter = ' ')
+    elif data['request'] == 'SET_PARTS':
     	#Set the parts array to the array given by client
     	parts = np.array(data['info']); 
     else:
