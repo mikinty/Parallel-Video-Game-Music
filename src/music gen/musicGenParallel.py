@@ -5,7 +5,7 @@ import time
 
 #Music settings
 NUMMEASURES = 4
-BEATSPERMEASURE = 4
+BEATSPERMEASURE = 16 #Using 16th notes
 NUMPARTS = 10
 NUMTONES = 73
 NUMDUR = 15
@@ -14,18 +14,15 @@ NUMOCTAVES = 6
 NUMCHORDS = 1728
 NUMNOTES = 1095
 
-#(note, duration) datatype
-note = np.dtype([('tone', np.int32), ('duration', np.int32)])
-
 #Generates next note based on previous notes
 #Returns a (tone, duration) pair
-def nextNote(noteIndex, partMusic, partMarker, matrix, mood):
+def nextNote(prev1, prev2, partMarker, matrix, mood):
 	#Note to be picked
-  tone = 0
-  duration = 0
+  tone = None 
+  duration = None
 
   if partMarker == 0 : #chord
-    if noteIndex == 0 : #End on base chord in some inversion
+    if prev1 == None : #End on base chord in some inversion
       #Get mid of chord
       mid = None
       if mood == 0 : #Minor chord
@@ -38,7 +35,7 @@ def nextNote(noteIndex, partMusic, partMarker, matrix, mood):
 
     else : #Get chord based on previous chord
 			#Get normalized matrix line
-      matrixIndex = partMusic[noteIndex - 1]['tone']  - CHORDOFFSET
+      matrixIndex = prev1[0]  - CHORDOFFSET
       lineSum = np.sum(matrix[matrixIndex])
       if lineSum != 0: #Use normalized row distribution
         probLine = matrix[matrixIndex] / lineSum
@@ -50,15 +47,14 @@ def nextNote(noteIndex, partMusic, partMarker, matrix, mood):
     duration = np.random.randint(4, 16)
 
   else : #melodic line
-    if noteIndex < 2 : #Pick random notes weighted by music theoretic ideas
-      tone = np.random.choice(12, [0.5, 0, 0.1, 0.1, 0.1, 0.2, 0, 0, 0, 0, 0, 0])
+    if prev2 == None or prev1 == None : #Pick random notes weighted by music theoretic ideas
+      tone = np.random.choice(12, p = [0.5, 0, 0.1, 0.1, 0.1, 0.2, 0, 0, 0, 0, 0, 0])
       duration = np.random.randint(0, 16)
 
     else: #Get note based on previous notes
   		#Get matrix line
-      matrixIndex = ((deviceMusic[noteIndex - 1]['tone'] * NUMDUR + 
-        deviceMusic[noteIndex - 1]['duration']) * NUMNOTES) + (
-        deviceMusic[noteIndex - 2]['tone'] * NUMDUR + deviceMusic[noteIndex - 2]['duration'])
+      matrixIndex = ((prev1[0] * NUMDUR + 
+        prev1[1]) * NUMNOTES) + (prev2[0] * NUMDUR + prev2[1])
       lineSum = np.sum(matrix[matrixIndex])
       if (lineSum != 0): #Use normalized row distribution
         probLine = matrix[matrixIndex] / lineSum
@@ -69,28 +65,33 @@ def nextNote(noteIndex, partMusic, partMarker, matrix, mood):
         noteIndex = np.random.choice(NUMNOTES)
         tone = noteIndex / NUMDUR
         duration = noteIndex % NUMDUR
-
-  return (tone, duration)
+ 
+  return int(tone), int(duration)
 
 #Creates and stores a total of NUMMEASURES of music in parallel,
 #split by parts
 def generatePart(matrix, partMarker, mood, partMusic):
   numBeatsFilled = 0
-  noteIndex = 0
+
+  prev1 = None
+  prev2 = None
 
 	#Generating notes
-  while numBeatsFilled < NUMMEAURES * BEATSPERMEASURE : 
+  while numBeatsFilled < NUMMEASURES * BEATSPERMEASURE : 
 		#Get next note
-    newNote = nextNote(noteIndex, partMusic, partMarker, matrix, mood)
+    tone, duration = nextNote(prev1, prev2, partMarker, matrix, mood)
 
-    numBeatsFilled = numBeatsFilled + newNote['duration']
+    numBeatsFilled = numBeatsFilled + (duration + 1)
     #If too long, chop note off at end of measure
-    if (numBeatsFilled > NUMMEAURES * BEATSPERMEASURE) :
-      newNote['duration'] = NUMMEAURES * BEATSPERMEASURE - numBeatsFilled + newNote[['duration']] 
+    if (numBeatsFilled > NUMMEASURES * BEATSPERMEASURE) :
+      duration = duration - (numBeatsFilled - NUMMEASURES * BEATSPERMEASURE)
 
-		#Add note to music array
-    partMusic[noteIndex] = newNote;
-    noteIndex = noteIndex + 1
+		#Add note to music array 
+    partMusic.append([tone, duration])
+
+    prev2 = prev1
+    prev1 = [tone, duration]
+
   return
 
 #Calls GPU to generate NUMMEASURES total measures of music
@@ -98,26 +99,25 @@ def generatePart(matrix, partMarker, mood, partMusic):
 #music generated, split by part (as assigned by the parts variable)
 def generateMusic(highNotes, lowNotes, chords, parts, mood):
 
-  music = np.ndarray((10, NUMMEASURES * BEATSPERMEASURE * 4), dtype = note)
+  music = [[] for i in range(10)]
+  threads = []
 
-  try:
-    for index, partMarker in enumerate(parts):
-      t = None
-      if (partMarker == -1): #silent
-        continue
-      elif (partMarker == 0): #chord
-        t = threading.Thread(target = generatePart, args = (chords, mood, music[index],))
-      elif (partMarker == 1): #bass
-        t = threading.Thread(target = generatePart, arg = (lowNotes, mood, music[index],))
-      elif (partMark == 2): #soprano
-        t = threading.Thread(target = generatePart, arg = (highNotes, mood, music[index],))
-      else: #Error
-        print ('Error: Part assignment not allowed')
-      t.start()
-  except:
-    print ('Error: unable to start thread')
+  for index, partMarker in enumerate(parts):
+    t = None
+    if (partMarker == -1): #silent
+      continue
+    elif (partMarker == 0): #chord
+      t = threading.Thread(target = generatePart, args = (chords, partMarker, mood, music[index]))
+    elif (partMarker == 1): #bass
+      t = threading.Thread(target = generatePart, args = (lowNotes, partMarker, mood, music[index]))
+    elif (partMarker == 2): #soprano
+      t = threading.Thread(target = generatePart, args = (highNotes, partMarker, mood, music[index]))
+    else: #Error
+      print ('Error: Part assignment not allowed')
+    t.start()
+    threads.append(t)
 
-  for t in threading.enumerate():
+  for t in threads:
     t.join()
 
   return music

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import musicGenParallel as mgp
 import asyncio
 import websockets
@@ -17,21 +18,23 @@ on its side
 	Time Signature - Currently 4/4, could be picked at start screen and sent to server
 """
 
-#File names for matrices
-MAJORHIGH = 'majorHighMatrix.txt'
-MAJORLOW = 'majorLowMatrix.txt'
-MAJORCHORD = 'majorChordMatrix.txt'
-MINORHIGH = 'minorHighMatrix.txt'
-MINORLOW = 'minorLowMatrix.txt'
-MINORCHORD = 'minorChordMatrix.txt'
+#Loaded matrices
+MAJORHIGH = np.loadtxt('majorHighMatrix.txt', dtype = np.int32)
+MAJORLOW = np.loadtxt('majorLowMatrix.txt', dtype = np.int32)
+MAJORCHORD = np.loadtxt('majorChordMatrix.txt', dtype = np.int32)
+MINORHIGH = None #np.loadtxt('minorHighMatrix.txt', dtype = np.int32)
+MINORLOW = None #np.loadtxt('minorLowMatrix.txt', dtype = np.int32)
+MINORCHORD = None #np.loadtxt('minorChordMatrix.txt', dtype = np.int32)
+
+print('Matrix Loading Complete')
 
 # remember what number requests are
 transactionID = 0
 
 #Global Variables - Matrices
-highNotes = None
-lowNotes = None
-chords = None
+highNotes = MAJORHIGH
+lowNotes = MAJORLOW
+chords = MAJORCHORD
 
 #Array of parts, where 0 = chord, 1 = bass, 2 = soprano, -1 = silent
 parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
@@ -44,6 +47,7 @@ def getNotes():
   Returns the generated notes.
   returns: json of notes and corresponding transaction ID
   '''
+
   #Array of music generated, assuming 4/4 time signature
 	#2D array of (note, duration) pairs split by parts (up to 10)
 	#Calls GPUs to generate measures of music
@@ -78,14 +82,14 @@ async def main(websocket, path):
         print('Error getting notes')
     elif data['request'] == 'SET_MAJOR':
       mood = 0
-      highNotes = np.loadtxt(majorHighMatrix, dtype = np.int32, deliminter = ' ')
-      lowNotes = np.loadtxt(majorLowMatrix, dtype = np.int32, deliminter = ' ')
-      chords = np.loadtxt(majorChordMatrix, dtype = np.int32, deliminter = ' ')
+      highNotes = MAJORHIGH
+      lowNotes = MAJORLOW
+      chords = MAJORCHORD
     elif data['request'] == 'SET_MINOR':
       mood = 1
-      highNotes = np.loadtxt(minorHighMatrix, dtype = np.int32, deliminter = ' ')
-      lowNotes = np.loadtxt(minorLowMatrix, dtype = np.int32, deliminter = ' ')
-      chords = np.loadtxt(minorChordMatrix, dtype = np.int32, deliminter = ' ')
+      highNotes = MINORHIGH
+      lowNotes = MINORLOW
+      chords = MINORCHORD
     elif data['request'] == 'SET_PARTS':
     	#Set the parts array to the array given by client
     	parts = np.array(data['info']); 
