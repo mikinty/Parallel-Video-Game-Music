@@ -1,21 +1,11 @@
 #include <string>
 #include <algorithm>
-#include <math.h>
 #include <stdio.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 #include "training.h"
-
-#include <thrust/iterator/discard_iterator.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/generate.h>
-#include <thrust/reduce.h>
-#include <thrust/functional.h>
-#include <thrust/random.h>
-#include <thrust/sequence.h>
 
 // Define global variables
 int* deviceMajorHighNotes[NUM_GPU_PER_MATRIX];
@@ -25,14 +15,14 @@ int* deviceMinorHighNotes[NUM_GPU_PER_MATRIX];
 int* deviceMinorLowNotes[NUM_GPU_PER_MATRIX];
 int* deviceMinorChords;
 
-cudaStream_t majorHigh[NUM_GPU_PER_MATRIX];
-cudaStream_t majorLow[NUM_GPU_PER_MATRIX];
-cudaStream_t majorChordS;
-cudaStream_t majorChordB;
-cudaStream_t minorHigh[NUM_GPU_PER_MATRIX];
-cudaStream_t minorLow[NUM_GPU_PER_MATRIX];
-cudaStream_t minorChordS;
-cudaStream_t minorChordB;
+cudaStream_t majorHighStream[NUM_GPU_PER_MATRIX];
+cudaStream_t majorLowStream[NUM_GPU_PER_MATRIX];
+cudaStream_t majorChordSStream;
+cudaStream_t majorChordBStream;
+cudaStream_t minorHighStream[NUM_GPU_PER_MATRIX];
+cudaStream_t minorLowStream[NUM_GPU_PER_MATRIX];
+cudaStream_t minorChordSStream;
+cudaStream_t minorChordBStream;
 
 sound_t* deviceMajorSoprano[NUM_GPU_PER_MATRIX + 1];
 sound_t* deviceMajorBass[NUM_GPU_PER_MATRIX + 1];
@@ -214,7 +204,7 @@ void initCuda()
     cudaMalloc((void**)&deviceMinorHighNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES);
     cudaMemsetAsync(deviceMinorHighNotes[offsetGPU], 0, sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, minorHighStream[offsetGPU]);
 
-    cudaSetDevice(pffsetGPU + MINOR_LOW_DEVICE);
+    cudaSetDevice(offsetGPU + MINOR_LOW_DEVICE);
     cudaStreamCreate(&minorLowStream[offsetGPU]);
     cudaMalloc((void**)&deviceMinorBass[offsetGPU], sizeof(sound_t) * ARRAY_LENGTH);
     cudaMalloc((void**)&deviceMinorLowNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES);
@@ -229,7 +219,7 @@ void initCuda()
   cudaMalloc((void**)&deviceMajorSoprano[NUM_GPU_PER_MATRIX], sizeof(sound_t) * ARRAY_LENGTH);
   cudaMalloc((void**)&deviceMajorBass[NUM_GPU_PER_MATRIX], sizeof(sound_t) * ARRAY_LENGTH);
   cudaMalloc((void**)&deviceMajorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS); 
-  cudaMemsetAsync(deviceMajorChords, 0, sizeof(int) * NUM_CHORDS * NUM_CHORDS. majorChordSStream);
+  cudaMemsetAsync(deviceMajorChords, 0, sizeof(int) * NUM_CHORDS * NUM_CHORDS, majorChordSStream);
 
   cudaSetDevice(MINOR_CHORD_DEVICE);
   cudaStreamCreate(&minorChordSStream);
@@ -251,25 +241,25 @@ void freeCuda()
 
     cudaSetDevice(offsetGPU + MAJOR_HIGH_DEVICE);
     cudaDeviceSynchronize();
-    cudaStreamDestory(majorHighStream[offsetGPU]);
+    cudaStreamDestroy(majorHighStream[offsetGPU]);
     cudaFree(deviceMajorSoprano[offsetGPU]);
     cudaFree(deviceMajorHighNotes[offsetGPU]);
 
     cudaSetDevice(offsetGPU + MAJOR_LOW_DEVICE);
     cudaDeviceSynchronize();
-    cudaStreamDestory(majorLowStream[offsetGPU]);
+    cudaStreamDestroy(majorLowStream[offsetGPU]);
     cudaFree(deviceMajorBass[offsetGPU]);
     cudaFree(deviceMajorLowNotes[offsetGPU]);
 
     cudaSetDevice(offsetGPU + MINOR_HIGH_DEVICE);
     cudaDeviceSynchronize();
-    cudaStreamDestory(minorHighStream[offsetGPU]);
+    cudaStreamDestroy(minorHighStream[offsetGPU]);
     cudaFree(deviceMinorSoprano[offsetGPU]);
     cudaFree(deviceMinorHighNotes[offsetGPU]);
 
-    cudaSetDevice(pffsetGPU + MINOR_LOW_DEVICE);
+    cudaSetDevice(offsetGPU + MINOR_LOW_DEVICE);
     cudaDeviceSynchronize();
-    cudaStreamDestory(minorLowStream[offsetGPU]);
+    cudaStreamDestroy(minorLowStream[offsetGPU]);
     cudaFree(deviceMinorBass[offsetGPU]);
     cudaFree(deviceMinorLowNotes[offsetGPU]);
   }
@@ -278,16 +268,16 @@ void freeCuda()
 
   cudaSetDevice(MAJOR_CHORD_DEVICE);
   cudaDeviceSynchronize();
-  cudaStreamDestory(&majorChordSStream);
-  cudaStreamDestroy(&majorChordBStream);
+  cudaStreamDestroy(majorChordSStream);
+  cudaStreamDestroy(majorChordBStream);
   cudaFree(deviceMajorSoprano[NUM_GPU_PER_MATRIX]);
   cudaFree(deviceMajorBass[NUM_GPU_PER_MATRIX]);
   cudaFree(deviceMajorChords);
   
   cudaSetDevice(MINOR_CHORD_DEVICE);
   cudaDeviceSynchronize();
-  cudaStreamDestory(&minorChordSStream);
-  cudaStreamDestroy(&minorChordBStream);
+  cudaStreamDestroy(minorChordSStream);
+  cudaStreamDestroy(minorChordBStream);
   cudaFree(deviceMinorSoprano[NUM_GPU_PER_MATRIX]);
   cudaFree(deviceMinorBass[NUM_GPU_PER_MATRIX]);
   cudaFree(deviceMinorChords);
@@ -303,15 +293,15 @@ void cudaStreamSynch(int mood){
   for (int offsetGPU = 0; offsetGPU < NUM_GPU_PER_MATRIX; offsetGPU ++){
     if (mood == 0) { //major
       cudaSetDevice(offsetGPU + MAJOR_HIGH_DEVICE);
-      cudaStreamSynchronize(majorHighStream[offSetGPU]);
+      cudaStreamSynchronize(majorHighStream[offsetGPU]);
       cudaSetDevice(offsetGPU + MAJOR_LOW_DEVICE);
-      cudaStreamSynchronize(majorLowStream[offSetGPU]);
+      cudaStreamSynchronize(majorLowStream[offsetGPU]);
     }
     else { //minor
       cudaSetDevice(offsetGPU + MINOR_HIGH_DEVICE);
-      cudaStreamSynchronize(minorHighStream[offSetGPU]);
+      cudaStreamSynchronize(minorHighStream[offsetGPU]);
       cudaSetDevice(offsetGPU + MINOR_LOW_DEVICE);
-      cudaStreamSynchronize(minorLowStream[offSetGPU]);
+      cudaStreamSynchronize(minorLowStream[offsetGPU]);
     }
   }
 
@@ -364,17 +354,17 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
   //Call GPUS for chords
   if (mood == 0) { //major
     cudaSetDevice(MAJOR_CHORD_DEVICE);
-    cudaMemcpyAsync(deviceMajorSoprano[NUM_GPU_PER_MATRIX], soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice, majorChordS);
-    cudaMemcpyAsync(deviceMajorBass[NUM_GPU_PER_MATRIX], bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice, majorChordB);
-    CountChordSection<<<1, NUM_THREADS, 0, majorChordS>>>(deviceMajorSoprano[NUM_GPU_PER_MATRIX], sLength, deviceMajorChords);
-    CountChordSection<<<1, NUM_THREADS, 0, majorChordB>>>(deviceMajorBass[NUM_GPU_PER_MATRIX], bLength, deviceMajorChords);
+    cudaMemcpyAsync(deviceMajorSoprano[NUM_GPU_PER_MATRIX], soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice, majorChordSStream);
+    cudaMemcpyAsync(deviceMajorBass[NUM_GPU_PER_MATRIX], bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice, majorChordBStream);
+    CountChordSection<<<1, NUM_THREADS, 0, majorChordSStream>>>(deviceMajorSoprano[NUM_GPU_PER_MATRIX], sLength, deviceMajorChords);
+    CountChordSection<<<1, NUM_THREADS, 0, majorChordBStream>>>(deviceMajorBass[NUM_GPU_PER_MATRIX], bLength, deviceMajorChords);
   }
   else { //minor
     cudaSetDevice(MINOR_CHORD_DEVICE);
-    cudaMemcpyAsync(deviceMinorSoprano[NUM_GPU_PER_MATRIX], soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice, minorChordS);
-    cudaMemcpyAsync(deviceMinorBass[NUM_GPU_PER_MATRIX], bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice, minorChordB);
-    CountChordSection<<<1, NUM_THREADS, 0, minorChordS>>>(deviceMinorSoprano[NUM_GPU_PER_MATRIX], sLength, deviceMinorChords);
-    CountChordSection<<<1, NUM_THREADS, 0, minorChordB>>>(deviceMinorBass[NUM_GPU_PER_MATRIX], bLength, deviceMinorChords);
+    cudaMemcpyAsync(deviceMinorSoprano[NUM_GPU_PER_MATRIX], soprano, sizeof(sound_t) * sLength, cudaMemcpyHostToDevice, minorChordSStream);
+    cudaMemcpyAsync(deviceMinorBass[NUM_GPU_PER_MATRIX], bass, sizeof(sound_t) * bLength, cudaMemcpyHostToDevice, minorChordBStream);
+    CountChordSection<<<1, NUM_THREADS, 0, minorChordSStream>>>(deviceMinorSoprano[NUM_GPU_PER_MATRIX], sLength, deviceMinorChords);
+    CountChordSection<<<1, NUM_THREADS, 0, minorChordBStream>>>(deviceMinorBass[NUM_GPU_PER_MATRIX], bLength, deviceMinorChords);
   }
 }
 
@@ -385,27 +375,27 @@ void countTransitionsCuda(sound_t* soprano, int sLength, sound_t* bass, int bLen
 void cudaToHost()
 {
   //Copy all melodic matrices into host memory
+  for (int offsetGPU = 0; offsetGPU < NUM_GPU_PER_MATRIX; offsetGPU++) { 
+    int matrixIndex = NUM_NOTES * MATRIX_BLOCK_ROWS * offsetGPU; 
 
-  for (int offsetGPU = 0; offsetGPU < NUM_GPU_PER_MATRIX; offsetGPU ++){
     cudaSetDevice(offsetGPU + MAJOR_HIGH_DEVICE);
-    cudaMemcpyAsync(majorHighNotes + NUM_NOTES * MATRIX_BLOCK_ROWS * offsetGPU, deviceMajorHighNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, majorHighStrean[offsetGPU]);
+    cudaMemcpyAsync(majorHighNotes + matrixIndex, deviceMajorHighNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, majorHighStream[offsetGPU]);
 
     cudaSetDevice(offsetGPU + MAJOR_LOW_DEVICE);
-    cudaMemcpyAsync(majorLowNotes + NUM_NOTES * MATRIX_BLOCK_ROWS * offsetGPU, deviceMajorLowNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, majorLowStrean[offsetGPU]);
+    cudaMemcpyAsync(majorLowNotes + matrixIndex, deviceMajorLowNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, majorLowStream[offsetGPU]);
 
     cudaSetDevice(offsetGPU + MINOR_HIGH_DEVICE);
-    cudaMemcpyAsync(minorHighNotes + NUM_NOTES * MATRIX_BLOCK_ROWS * offsetGPU, deviceMinorHighNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, minorHighStrean[offsetGPU]);
+    cudaMemcpyAsync(minorHighNotes + matrixIndex, deviceMinorHighNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, minorHighStream[offsetGPU]);
 
-    cudaSetDevice(pffsetGPU + MINOR_LOW_DEVICE);
-    cudaMemcpyAsync(minorLowNotes + NUM_NOTES * MATRIX_BLOCK_ROWS * offsetGPU, deviceMinorLowNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, minorLowStrean[offsetGPU]);
+    cudaSetDevice(offsetGPU + MINOR_LOW_DEVICE);
+    cudaMemcpyAsync(minorLowNotes + matrixIndex, deviceMinorLowNotes[offsetGPU], sizeof(int) * MATRIX_BLOCK_ROWS * NUM_NOTES, cudaMemcpyDeviceToHost, minorLowStream[offsetGPU]);
+
   }
 
   //Copy Chord matrices
   cudaSetDevice(MAJOR_CHORD_DEVICE);
-  cudaDeviceSynchronize();
   cudaMemcpy(majorChords, deviceMajorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
 
   cudaSetDevice(MINOR_CHORD_DEVICE);
-  cudaDeviceSynchronize();
   cudaMemcpy(minorChords, deviceMinorChords, sizeof(int) * NUM_CHORDS * NUM_CHORDS, cudaMemcpyDeviceToHost);
 }

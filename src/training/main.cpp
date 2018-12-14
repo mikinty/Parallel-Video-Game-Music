@@ -5,6 +5,9 @@
 #include <iostream>
 #include <fstream>
 
+#include <cuda.h>
+#include<cuda_runtime.h>
+
 using namespace std;
 
 //Define global variables
@@ -41,7 +44,7 @@ void outputMatrices() {
 	outFile.open("majorLowMatrixNew.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
-			outFile << majorLowNotes[i * NUM_NOTES + j] << " ";
+      outFile << majorLowNotes[i * NUM_NOTES + j] << " ";
 		}
 		outFile << "\n";
 	}
@@ -52,7 +55,7 @@ void outputMatrices() {
 	outFile.open("majorChordMatrixNew.txt");
 	for (int i = 0; i < NUM_CHORDS; i ++){
 		for (int j = 0; j < NUM_CHORDS; j++){
-			outFile << majorChords[i * NUM_CHORDS + j] << " ";
+      outFile << majorChords[i * NUM_CHORDS + j] << " ";
 		}
 		outFile << "\n";
 	}
@@ -119,6 +122,28 @@ void outputMatrices() {
 }
 
 /**
+ * @brief uses cudaHostAlloc to allocated pinned memory for global structures
+ */
+void allocHost(){
+
+  //Allocate memory for all final host matrices
+  cudaHostAlloc(&majorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&majorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&minorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&minorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+   
+  //Chord Matrices
+  majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
+  minorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
+ 
+  //Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
+  cudaHostAlloc(&majorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  cudaHostAlloc(&majorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  cudaHostAlloc(&minorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  cudaHostAlloc(&minorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+}
+
+/**
  * @brief Sets up and calls functions to create matrices from input files given in command line
  * 
  * @param argc nunmber of command line arguments
@@ -132,21 +157,11 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  //Allocate memory for all final host matrices
-  cudaHostAlloc(&majorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  cudaHostAlloc(&majorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
-  cudaHostAlloc(&minorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  cudaHostAlloc(&minorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  minorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
-
+  //Allocate memory for host and device
+  allocHost();
   initCuda();
 
-  //Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
-  cudaHostAlloc(&majorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
-	cudaHostAlloc(&majorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
-  cudaHostAlloc(&minorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
-  cudaHostAlloc(&minorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  printf("Finished Initialization \n");
 
   std::string fileLine;
   std::ifstream majorFile(argv[1]);
@@ -193,12 +208,13 @@ int main(int argc, char** argv) {
           bLen ++;
         }
         else {
-        majorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
-        majorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
-        sLen ++;
+          majorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
+          majorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
+          sLen ++;
+        }
       }
       //If the notes run past the array length, send array over and switch maj/min
-      if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH){
+      if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH) {
         countTransitionsCuda(majorSoprano, sLen, majorBass, bLen, mood);
         sLen = 0;
         bLen = 0;
@@ -232,9 +248,10 @@ int main(int argc, char** argv) {
           bLen ++;
         }
         else {
-        minorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
-        minorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
-        sLen ++;
+          minorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
+          minorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
+          sLen ++;
+        }
       }
       //If the notes run past the array length, send array over and switch maj/min
       if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH){
@@ -262,5 +279,4 @@ int main(int argc, char** argv) {
   outputMatrices();
 
   return 0;
-    }
 }
