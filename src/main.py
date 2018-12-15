@@ -5,18 +5,22 @@ import asyncio
 import websockets
 import json
 
-"""Settings Client Picks:
+from CONST_SERVER import *
+
+'''
+Settings Client Picks:
 Note that certain settings do not affect (note, duration) choices,
 and so do not need to be known by server. The client, after
 receiving measures of music, can then implement tempo and instrumentation
-on its side
-	Mood (Major/Minor) - Picked at start screen, needed by server
-	Parts Split - Picked at mixing screen, used by server if not default
-	Tempo - Picked at mixing screen, only used by client
-	Instrumentation - Picked at mixing screen, only used by client
-	Tonic - Picked at mixing screen, only used by client
-	Time Signature - Currently 4/4, could be picked at start screen and sent to server
-"""
+on its side:
+
+	- Mood (Major/Minor): Picked at start screen, needed by server
+	- Parts Split: Picked at mixing screen, used by server if not default
+	- Tempo: Picked at mixing screen, only used by client
+	- Instrumentation: Picked at mixing screen, only used by client
+	- Tonic: Picked at mixing screen, only used by client
+	- Time Signature: Currently 4/4, could be picked at start screen and sent to server
+'''
 
 #Loaded matrices
 MAJORHIGH = np.loadtxt('majorHighMatrix.txt', dtype = np.int32)
