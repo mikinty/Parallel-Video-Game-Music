@@ -4,6 +4,7 @@ import musicGenParallel as mgp
 import asyncio
 import websockets
 import json
+from pickle import load, dump
 from time import time
 
 from multiprocessing import Process, Queue
@@ -58,12 +59,12 @@ def loadMatrices():
   global MINORLOW 
   global MINORCHORD
 
-  MAJORHIGH = pd.read_csv(MAJOR_HIGH_FILE, sep =' ', header=None)
-  MAJORLOW = pd.read_csv(MAJOR_LOW_FILE, sep =' ', header=None)
-  MAJORCHORD = pd.read_csv(MAJOR_CHORD_FILE, sep =' ', header=None)
-  MINORHIGH = pd.read_csv(MINOR_HIGH_FILE, sep =' ', header=None)
-  MINORLOW = pd.read_csv(MINOR_LOW_FILE, sep =' ', header=None)
-  MINORCHORD = pd.read_csv(MINOR_CHORD_FILE, sep =' ', header=None)
+  MAJORHIGH = load(open(MAJOR_HIGH_FILE, 'rb'))
+  MAJORLOW = load(open(MAJOR_LOW_FILE, 'rb'))
+  MAJORCHORD = load(open(MAJOR_CHORD_FILE, 'rb'))
+  MINORHIGH = load(open(MINOR_HIGH_FILE, 'rb'))
+  MINORLOW = load(open(MINOR_LOW_FILE, 'rb'))
+  MINORCHORD = load(open(MINOR_CHORD_FILE, 'rb'))
 
   print('Done loading all matrices')
 
@@ -125,7 +126,7 @@ async def main(websocket, path):
   #  print('SERVER ERROR')
 
 
-print('Initializing matrices, will take about 9 minutes')
+print('Initializing matrices, will take about 30 seconds')
 a = time()
 loadMatrices()
 print('Time:', time() - a, 'to initialize matrices')
