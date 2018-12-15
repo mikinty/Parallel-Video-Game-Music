@@ -15,11 +15,6 @@ int* minorHighNotes;
 int* minorLowNotes;
 int* minorChords;
 
-sound_t* majorSoprano;
-sound_t* majorBass;
-sound_t* minorSoprano;
-sound_t* minorBass;
-
 /**
  * @brief Outputs matrices to files
  */
@@ -27,7 +22,7 @@ void outputMatrices() {
   
   //For each matrix, copy matrix into file
 	std::ofstream outFile;
-	outFile.open("majorHighMatrixNew.txt");
+	/*outFile.open("majorHighMatrixNew.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
 			outFile << majorHighNotes[i * NUM_NOTES + j] << " ";
@@ -81,8 +76,8 @@ void outputMatrices() {
   outFile.close();
 
   printf("Printing 5/6 complete\n");
-
-  outFile.open("minorChordMatrixNew.txt");
+*/
+  outFile.open("minorChordMatrixSeq.txt");
   for (int i = 0; i < NUM_CHORDS; i ++){
     for (int j = 0; j < NUM_CHORDS; j++){
       outFile << minorChords[i * NUM_CHORDS + j] << " ";
@@ -94,7 +89,7 @@ void outputMatrices() {
   printf("Printing 6/6 complete\n");
 
   //Remove all old files, and replace with the new matrix files
-  remove("majorHighMatrix.txt");
+  /*remove("majorHighMatrix.txt");
   remove("majorHowMatrix.txt");
   remove("majorChordMatrix.txt");
   remove("minorHighMatrix.txt");
@@ -107,7 +102,7 @@ void outputMatrices() {
   std::rename("minorLowMatrixNew.txt", "minorLowMatrix.txt");
   std::rename("minorChordMatrixNew.txt", "minorChordMatrix.txt");
 
-  printf("File renaming complete\n");
+  printf("File renaming complete\n");*/
 
   //Free all host matrices
   free(majorHighNotes);
@@ -118,7 +113,7 @@ void outputMatrices() {
   free(minorChords);
 }
 
-inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2)
+inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2, int part)
 {
   // current note 
   int col = curTone * NUM_DUR + curDur;
@@ -126,15 +121,25 @@ inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, in
   //If previous tones are chords, get top note and find closest
   if (prevTone1 >= CHORD_OFFSET){
       prevTone1 = (prevTone1 - CHORD_OFFSET) / 144; //get top chord note
-      prevTone1 = curTone - (curTone % 12) + prevTone1; //find closest prevTone1 note
+      if (curTone == NUM_TONES - 1){ //is rest
+        prevTone1 = prevTone1 + 12 * (2 * part);
+      }
+      else {
+        prevTone1 = curTone - (curTone % 12) + prevTone1; //find closest prevTone1 note
+      }
   }
   if (prevTone2 >= CHORD_OFFSET){
       prevTone2 = (prevTone2 - CHORD_OFFSET) / 144; //get top chord note
-      prevTone2 = curTone - (curTone % 12) + prevTone2; //find closest note
+      if (curTone == NUM_TONES - 1) { //is rest
+        prevTone2 = prevTone2 + 12 * (2 * part);
+      }
+      else { //is note 
+        prevTone2 = curTone - (curTone % 12) + prevTone2; //find closest note
+      }
   }
 
   int row = ((prevTone1 * NUM_DUR) + prevDur1) * NUM_NOTES
-    + ((prevTone2 * NUM_DUR) + prevDur2);
+    + ((prevTone2 * NUM_DUR) + prevDur2); 
 
   return (row) * NUM_NOTES + col;
 }
@@ -150,10 +155,13 @@ inline int findChordCell(int curTone, int prevTone){
   if (prevTone >= CHORD_OFFSET) { //is a chord
     prevTone = prevTone - CHORD_OFFSET; //shift chord down
   }
+  else if (prevTone == NUM_TONES - 1) { //is a rest
+    return -1;
+  }
   else { //is a note
     prevTone = prevTone % 12 + 12 * (prevTone % 12) + 144 * (prevTone % 12);
   }
-  
+
   return prevTone * NUM_CHORDS + (curTone - CHORD_OFFSET);
 }
 
@@ -163,10 +171,10 @@ inline int findChordCell(int curTone, int prevTone){
 void allocHost(){
 
   //Allocate memory for all final host matrices
-  majorHighNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
-  majorLowNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
-  minorHighNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
-  minorLowNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
+  majorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  majorLowNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorHighNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
+  minorLowNotes = (int *) malloc(sizeof(int) * (NUM_NOTES * NUM_NOTES * NUM_NOTES));
    
   //Chord Matrices
   majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
@@ -213,9 +221,11 @@ int main(int argc, char** argv) {
   }
 
   printf("Begin parsing files \n");
+  int i = 0;
 
   //Loop through all given input files, parse file, and add count to device matrices
   while (std::getline(majorFile, fileLine)) { //Keep looping until both files are finished
+    i++;
     found = fileLine.find(' ');
     if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
        majorPart = 1;
@@ -226,29 +236,33 @@ int main(int argc, char** argv) {
     else if (found != std::string::npos){ //insert into correct notes line
       curTone = std::stoi(fileLine.substr(0, found));
       curDur = std::stoi(fileLine.substr(found+1));
+      int cell;
       if (majorPart == 0) {
         if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
-          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-          majorLow[cell]++;   
+          cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2, 1);
+          
+          majorLowNotes[cell]++;  
         }
-        else if (prevTone1 != -1) {
-          int cell = findChordCell(curTone, prevTone1);
-          majorChord[cell]++;   
+        else if (curTone >= CHORD_OFFSET && prevTone1 != -1) {
+          cell = findChordCell(curTone, prevTone1);
+          if (cell != -1)
+            majorChords[cell]++;   
         }
       }
       else {
         if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
-          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-          majorHigh[cell]++;   
+          cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2,2);
+          majorHighNotes[cell]++;   
         }
-        else if (prevTone1 != -1) {
-          int cell = findChordCell(curTone, prevTone1);
-          majorChord[cell]++;   
+        else if (curTone >= CHORD_OFFSET && prevTone1 != -1) {
+          cell = findChordCell(curTone, prevTone1);
+          if (cell != -1)
+            majorChords[cell]++;
         }
       }
       prevTone2 = prevTone1;
-      prevDur2 = prevCur1;
-      prevTone1 = curTone
+      prevDur2 = prevDur1;
+      prevTone1 = curTone;
       prevDur1 = curDur;
     }
   }
@@ -265,27 +279,29 @@ int main(int argc, char** argv) {
       curDur = std::stoi(fileLine.substr(found+1));
       if (minorPart == 0) {
         if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
-          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-          minorLow[cell]++;   
+          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2, 1);
+          minorLowNotes[cell]++;   
         }
         else if (prevTone1 != -1){
           int cell = findChordCell(curTone, prevTone1);
-          minorChord[cell]++;   
+          if (cell != -1)
+            minorChords[cell]++;   
         }
       }
       else {
         if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
-          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2);
-          minorHigh[cell]++;   
+          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2, 2);
+          minorHighNotes[cell]++;   
         }
         else if (prevTone1 != -1){
           int cell = findChordCell(curTone, prevTone1);
-          minorChord[cell]++;   
+          if (cell != -1)
+            minorChords[cell]++;   
         }
       }
       prevTone2 = prevTone1;
-      prevDur2 = prevCur1;
-      prevTone1 = curTone
+      prevDur2 = prevDur1;
+      prevTone1 = curTone;
       prevDur1 = curDur;
     }
   }
