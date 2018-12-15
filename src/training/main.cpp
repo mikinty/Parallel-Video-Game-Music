@@ -111,14 +111,6 @@ void outputMatrices() {
   std::rename("minorChordMatrixNew.txt", "minorChordMatrix.txt");
 
   printf("File renaming complete\n");
-
-  //Free all host matrices
-  cudaFreeHost(majorHighNotes);
-  cudaFreeHost(majorLowNotes);
-  free(majorChords);
-  cudaFreeHost(minorHighNotes);
-  cudaFreeHost(minorLowNotes);
-  free(minorChords);
 }
 
 /**
@@ -276,9 +268,18 @@ int main(int argc, char** argv) {
   //Free all device memory
   freeCuda();
 
-  printf("Start outputting matrices \n");
-  //output matrices to files
-  outputMatrices();
+  // printf("Start outputting matrices \n");
+
+  // output matrices to files
+  // outputMatrices();
+
+  //Free all host matrices
+  cudaFreeHost(majorHighNotes);
+  cudaFreeHost(majorLowNotes);
+  free(majorChords);
+  cudaFreeHost(minorHighNotes);
+  cudaFreeHost(minorLowNotes);
+  free(minorChords);
 
   return 0;
 }
