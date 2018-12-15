@@ -30,7 +30,7 @@ During the training phase, the above 6 matrices are initialized to 0. As threads
 
 For each melodic line, the algorithm uses the previous 2 notes to determine the correct matrix and matrix row to look at. It then uses that matrix section to determine the next note, based on the probabilities in the matrix. Because the matrices are training on music of the same structure and genre, it is likely that the resulting melodies also follow the same structure and sound similar to the training pieces. The resulting melodies are then combined and outputted through MIDI. Music is stored in nested lists - for every part, there is a list of (tone, duration) pairs representing the music for that part. 
 
-### INSERT FIGURE ABOUT MUSIC
+### INSERT FIGURE ABOUT HOW MUSIC IS STORED
 
 Each part line in the music is generated in parallel, through step by step casing on the previous notes as mentioned above. This results in many operations for reading the large matrices and normalizing rows. The only operation on the outputted music is stores to this data structure.
 
@@ -82,15 +82,15 @@ Before we can do any training, we need to preprocess our MIDIs into a format our
 
 ### Markov Model - CUDA and C++
 
-Markov Model training was done on the AWS Machines using C++ and CUDA capabilities. A total of 14 GPUs were used during training. 
+Markov Model training was done on the AWS Machines using C++ and CUDA capabilities. A total of 14 NVIDIA Tesla-K80 GPUs were used during training. 
 
-Blocking matrices + mapping problem
+In order to accomodate the large matrix sizes, matrices were first assigned to seperate GPUs. However, in order to utlize even more of the GPUS, the larger melodic line matrices were split into 3 parts each (row-major) and assigned to seperate GPUs. This results in an assignment of 3 GPUs per melodic line matrix plus 1 GPU per chord matrix, for a total utilisation of 3 * 4 + 2 = 14 GPUs. Next, sections of the input notes arrays were assigned to threads, again through contiguous rows (lines).  
 
-Async queue of kernel operations and memcpy and pinned memory
+During optimization, we used asynchronous queuing of kernel operations and memcpy and pinned memory. This allowed us to parse the input text file on the CPU while the GPUs performed kernel operations. 
 
-Previous iterations attempted to use shared memory between threads in the same block to increase the speed of matrix access.
+Previous iterations of the algorithm attempted to use shared memory between threads in the same block to increase the speed of matrix access. Since shared memory is faster, we attempted to assign matrices to thread blocks as opposed to GPUs, to cut down on transfer and access times. However, the large size of our matrices prevented this option.
 
-Another attempted optimization was the use of locks as opposed to atomicAdd.
+Another attempted optimization was the use of locks as opposed to atomicAdd. However, as the increment operations were unlikely to have much contention, it was much better to use atomicAdd as opposed to setting locks or other methods.
 
 Another optimization was using a peer-to-peer memory access between GPUs, in order to better parallelize the input file between more threads.
 
@@ -134,8 +134,6 @@ Our speedup results indicate...
 
 ## Musical Results
 How does our music sound?
-
-# Conclusion
 
 # Future Work
 
