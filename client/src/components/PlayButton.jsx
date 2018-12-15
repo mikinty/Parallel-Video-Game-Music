@@ -9,20 +9,25 @@ const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
 // listen to websocket events
 ws.onmessage = (event) => {
   console.log(event);
-  console.log()
+
+  // [[[a, b]], [[c, d]], [] ]
   var notes = JSON.parse(event.data).notes;
 
   var currTime = 0;
 
-  for (let i = 0; i < notes.length; i++) {
-    console.log(currTime);
-    synth.triggerAttackRelease (
-      CONST.NOTE_MAPPINGS[notes[i][0]], 
-      CONST.NOTE_DURATIONS[notes[i][1]],
-      currTime
-    );
+  for (let j = 2; j < notes.length; j++) {
+    for (let i = 0; i < notes[j].length; i++) {
+      console.log('playing', notes[j][i]);
 
-    currTime = currTime + CONST.NOTE_DURATIONS[notes[i][1]];
+      synth.triggerAttackRelease (
+        CONST.NOTE_MAPPINGS[notes[j][i][0]],
+        CONST.NOTE_DURATIONS[notes[j][i][1]],
+        currTime
+      );
+    }
+
+    console.log(notes[0][0][1]);
+    currTime = currTime + CONST.NOTE_DURATIONS[notes[0][0][1]];
   }
 }
 
