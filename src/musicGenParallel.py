@@ -2,17 +2,7 @@
 import numpy as np
 import threading
 import time
-
-#Music settings
-NUMMEASURES = 4
-BEATSPERMEASURE = 16 #Using 16th notes
-NUMPARTS = 10
-NUMTONES = 73
-NUMDUR = 15
-CHORDOFFSET = 101
-NUMOCTAVES = 6
-NUMCHORDS = 1728
-NUMNOTES = 1095
+from CONST_SERVER import *
 
 #Generates next note based on previous notes
 #Returns a (tone, duration) pair
