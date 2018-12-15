@@ -87,8 +87,6 @@ def getNotes():
 	#Calls GPUs to generate measures of music
   music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood)
 
-  print(music)
-
   return json.dumps({'id': transactionID, 'notes': music})
 
 async def main(websocket, path):
@@ -141,7 +139,11 @@ a = time()
 loadMatrices()
 print('Time:', time() - a, 'to initialize matrices')
 
-start_server = websockets.serve(main, '0.0.0.0', 80)
+a = time()
+getNotes()
+print('Time:', time() - a, 'to get notes')
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+#start_server = websockets.serve(main, '0.0.0.0', 80)
+
+#asyncio.get_event_loop().run_until_complete(start_server)
+#asyncio.get_event_loop().run_forever()
