@@ -25,7 +25,6 @@ on its side:
 	- Time Signature: Currently 4/4, could be picked at start screen and sent to server
 '''
 
-MATRICES = {}
 
 #Loaded matrices
 MAJORHIGH = None # np.loadtxt('majorHighMatrix.txt', dtype = np.int32)
@@ -49,48 +48,22 @@ parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
 #Keeps track of major (0) /minor (1)
 mood = 0 
 
-def loadMajH(q):
-  q.put([MAJOR_HIGH_FILE, pd.read_csv(MAJOR_HIGH_FILE, sep =' ', header=None)])
-  #q.put(['a', 1])
-  print(1)
-def loadMajL(q):
-  q.put([MAJOR_LOW_FILE, pd.read_csv(MAJOR_LOW_FILE, sep =' ', header=None)])
-  #q.put(['b', 2])
-  print(2)
-def loadMajK(q):
-  q.put([MAJOR_CHORD_FILE, pd.read_csv(MAJOR_CHORD_FILE, sep =' ', header=None)])
-  print(3)
-def loadMinH(q):
-  q.put([MINOR_HIGH_FILE, pd.read_csv(MINOR_HIGH_FILE, sep =' ', header=None)])
-  #q.put(['c', 3])
-  print(4)
-def loadMinL(q):
-  q.put([MINOR_LOW_FILE, pd.read_csv(MINOR_LOW_FILE, sep =' ', header=None)])
-  #q.put(['d', 4])
-  print(5)
-def loadMinK(q):
-  q.put([MINOR_CHORD_FILE, pd.read_csv(MINOR_CHORD_FILE, sep =' ', header=None)])
-  print(6)
-
 # Runs functions in parallel using Process
 # Adapted from https://stackoverflow.com/questions/7207309/python-how-can-i-run-python-functions-in-parallel
-def loadInParallel(*fns):
-  global MATRICES 
+def loadMatrices():
+  global MAJORHIGH  
+  global MAJORLOW 
+  global MAJORCHORD 
+  global MINORHIGH 
+  global MINORLOW 
+  global MINORCHORD
 
-  proc = []
-  q = Queue()
-  for fn in fns:
-    p = Process(target=fn, args=(q,))
-    p.start()
-    proc.append(p)
-
-  for x in range(NUM_MATRICES):
-    temp = q.get()
-    MATRICES[temp[0]] = temp[1]
-    print('done', x)
-
-  for p in proc:
-    p.join()
+  MAJORHIGH = pd.read_csv(MAJOR_HIGH_FILE, sep =' ', header=None)
+  MAJORLOW = pd.read_csv(MAJOR_LOW_FILE, sep =' ', header=None)
+  MAJORCHORD = pd.read_csv(MAJOR_CHORD_FILE, sep =' ', header=None)
+  MINORHIGH = pd.read_csv(MINOR_HIGH_FILE, sep =' ', header=None)
+  MINORLOW = pd.read_csv(MINOR_LOW_FILE, sep =' ', header=None)
+  MINORCHORD = pd.read_csv(MINOR_CHORD_FILE, sep =' ', header=None)
 
   print('Done loading all matrices')
 
@@ -151,15 +124,11 @@ async def main(websocket, path):
   #except:
   #  print('SERVER ERROR')
 
-def check():
-  global MAJORHIGH
-  print(MAJORHIGH)
 
+print('Initializing matrices, will take about 9 minutes')
 a = time()
-print('Initializing matrices', a)
-loadInParallel(loadMajH, loadMajL, loadMajK, loadMinH, loadMinL, loadMinK)
-print('Time:', time() - a)
-check()
+loadMatrices()
+print('Time:', time() - a, 'to initialize matrices')
 
 #start_server = websockets.serve(main, '0.0.0.0', 80)
 
