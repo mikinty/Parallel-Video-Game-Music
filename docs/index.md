@@ -22,15 +22,13 @@ In a Markov Model, multiple matrices are built from training data, or files of m
 
 For chord matrices, chord are stored in base 12 (12 notes per octave) where the highest (most significant) note in the chord is in the most significant space. Chords also have no duration marker. The chord matrix has depth 1, meaning rows and columns are both indexed by single notes. Like melodic line matrices, indicies are flattened to be stored in a row-major matrix, and printed to a text file.
 
-### INSERT FIGURE ABOUT MATRICES
+![Figure showing matrices](diagrams/finalMatrixFig.jpg "Markov Matrix")
 
 During the training phase, the above 6 matrices are initialized to 0. As threads step through the MIDI data, they perform atomicAdd operations on the proper cells. The major operations on the above matrices are memory loads and stores between the GPU devices and the host, atomicAdds on the GPUs, and the final print and store performed by the CPU to a text file. Because of the size of the melodic line matrices, they are split between 3 GPUs each - where each GPU stores a contiguous line of rows of the larger matrix. When loading to the CPU, these 3 GPUS load in parallel as they load to contiguous lines of CPU memory.
 
-### INSERT FIGURE ABOUT TRANSFERS AND BLOCKING
-
 For each melodic line, the algorithm uses the previous 2 notes to determine the correct matrix and matrix row to look at. It then uses that matrix section to determine the next note, based on the probabilities in the matrix. Because the matrices are training on music of the same structure and genre, it is likely that the resulting melodies also follow the same structure and sound similar to the training pieces. The resulting melodies are then combined and outputted through MIDI. Music is stored in nested lists - for every part, there is a list of (tone, duration) pairs representing the music for that part. 
 
-### INSERT FIGURE ABOUT HOW MUSIC IS STORED
+![Figure showing matrices](diagrams/finalMusicFig.jpg "Music Generated")
 
 Each part line in the music is generated in parallel, through step by step casing on the previous notes as mentioned above. This results in many operations for reading the large matrices and normalizing rows. The only operation on the outputted music is stores to this data structure.
 
@@ -98,7 +96,7 @@ There was no previous code for this algorithm, and the original serial algorithm
 
 ## Generation
 
-### Server - Multithreading in Python
+### Server - MultiProcessing in Python
 
 In order to write the server-client interface in a more straightforward manner, we decided to use Python. While this would impact our overall performance, we decided the added difficulty in getting a proper server-client link using other langauges, which is irrelvant to parallelism, would be too much extra work. The server and multithreading music generation is done on the AWS machines.
 
@@ -119,10 +117,11 @@ The client takes in user input to build a music request to the server. This is r
 # Results
 
 ## Experimental Setup
-Sizes of inputs, how we measured performance
+For training,
+
+For music generation, 
 
 ## Speedup Graphs
-Our speedup results indicate...
 
 ## Impact of Problem Size
 
@@ -131,9 +130,6 @@ Our speedup results indicate...
 ## Execution Time Breakdown
 
 ## Machine Choice
-
-## Musical Results
-How does our music sound?
 
 # Future Work
 
@@ -156,8 +152,8 @@ Total credit should be distributed 50% - 50%.
 | Annie's Work | Michael's Work | Both |
 | ---  | --- | --- |
 | Matrix Training Algorithm | Pre-processing Algorithm | Lit Review + Model |
-| Music Generation Algorithm | Matrix Loading | Formatting and Algorithm Structure |
-| Training Optimizations | Client Interface | Checkpoint |
-| Music Generation Threading | Buffering | Further Reference Research |
-| | Making Figures | Poster Creation |
-| | | Writeup and Presentation |
+| Training Optimizations (Async, Blocking, MultiGPU) | Matrix Loading | Formatting and Algorithm Structure |
+| Music Generation Algorithm | Client Interface | Checkpoint |
+| Music Generation Threading | Training Timing Results | Further Reference Research |
+| Music Generation Timing Results | Making Figures | Poster Creation |
+| | Music Generation MultiProcessing | Writeup and Presentation |
