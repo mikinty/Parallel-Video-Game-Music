@@ -28,20 +28,20 @@ on its side:
 
 
 #Loaded matrices
-MAJORHIGH = None # np.loadtxt('majorHighMatrix.txt', dtype = np.int32)
-MAJORLOW = None # np.loadtxt('majorLowMatrix.txt', dtype = np.int32)
-MAJORCHORD = None # np.loadtxt('majorChordMatrix.txt', dtype = np.int32)
-MINORHIGH = None #np.loadtxt('minorHighMatrix.txt', dtype = np.int32)
-MINORLOW = None #np.loadtxt('minorLowMatrix.txt', dtype = np.int32)
-MINORCHORD = None #np.loadtxt('minorChordMatrix.txt', dtype = np.int32)
+MAJORHIGH = None 
+MAJORLOW = None 
+MAJORCHORD = None 
+MINORHIGH = None 
+MINORLOW = None 
+MINORCHORD = None 
 
 # remember what number requests are
 transactionID = 0
 
 #Global Variables - Matrices
-highNotes = MAJORHIGH
-lowNotes = MAJORLOW
-chords = MAJORCHORD
+highNotes = None 
+lowNotes = None
+chords = None
 
 #Array of parts, where 0 = chord, 1 = bass, 2 = soprano, -1 = silent
 parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
@@ -78,6 +78,8 @@ def getNotes():
 	#2D array of (note, duration) pairs split by parts (up to 10)
 	#Calls GPUs to generate measures of music
   music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood)
+
+  print(music)
 
   return json.dumps({'id': transactionID, 'notes': music})
 
@@ -130,6 +132,10 @@ print('Initializing matrices, will take about 30 seconds')
 a = time()
 loadMatrices()
 print('Time:', time() - a, 'to initialize matrices')
+highNotes = MAJORHIGH
+lowNotes = MAJORLOW
+chords = MAJORCHORD
+getNotes()
 
 #start_server = websockets.serve(main, '0.0.0.0', 80)
 

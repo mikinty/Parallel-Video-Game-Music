@@ -21,7 +21,7 @@ def nextNote(prev1, prev2, partMarker, matrix, mood):
         mid = 4
 
 			#Get random inversion
-      tone = np.random.choice([7 + mid * 144, mid + 7*12, mid * 12 + 7 * 144])
+      tone = np.random.choice([7 + mid * 144, mid + 7*12, mid * 12 + 7 * 144]) + CHORDOFFSET
 
     else : #Get chord based on previous chord
 			#Get normalized matrix line
@@ -39,6 +39,7 @@ def nextNote(prev1, prev2, partMarker, matrix, mood):
   else : #melodic line
     if prev2 == None or prev1 == None : #Pick random notes weighted by music theoretic ideas
       tone = np.random.choice(12, p = [0.5, 0, 0.1, 0.1, 0.1, 0.2, 0, 0, 0, 0, 0, 0])
+      tone = tone + np.random.randint(NUMOCTAVES) * 12 #Get random octave
       duration = np.random.randint(0, 16)
 
     else: #Get note based on previous notes
