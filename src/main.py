@@ -58,6 +58,9 @@ def loadMatrices():
   global MINORHIGH 
   global MINORLOW 
   global MINORCHORD
+  global highNotes
+  global lowNotes
+  global chords
 
   MAJORHIGH = load(open(MAJOR_HIGH_FILE, 'rb'))
   MAJORLOW = load(open(MAJOR_LOW_FILE, 'rb'))
@@ -65,6 +68,11 @@ def loadMatrices():
   MINORHIGH = load(open(MINOR_HIGH_FILE, 'rb'))
   MINORLOW = load(open(MINOR_LOW_FILE, 'rb'))
   MINORCHORD = load(open(MINOR_CHORD_FILE, 'rb'))
+
+  # default safety
+  highNotes = MAJORHIGH
+  lowNotes = MAJORLOW
+  chords = MAJORCHORD
 
   print('Done loading all matrices')
 
@@ -132,12 +140,8 @@ print('Initializing matrices, will take about 30 seconds')
 a = time()
 loadMatrices()
 print('Time:', time() - a, 'to initialize matrices')
-highNotes = MAJORHIGH
-lowNotes = MAJORLOW
-chords = MAJORCHORD
-getNotes()
 
-#start_server = websockets.serve(main, '0.0.0.0', 80)
+start_server = websockets.serve(main, '0.0.0.0', 80)
 
-#asyncio.get_event_loop().run_until_complete(start_server)
-#asyncio.get_event_loop().run_forever()
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
