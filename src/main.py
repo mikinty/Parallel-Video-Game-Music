@@ -4,6 +4,9 @@ import musicGenParallel as mgp
 import asyncio
 import websockets
 import json
+from time import time
+
+from multiprocessing import Process, Queue
 
 from CONST_SERVER import *
 
@@ -22,15 +25,15 @@ on its side:
 	- Time Signature: Currently 4/4, could be picked at start screen and sent to server
 '''
 
+MATRICES = {}
+
 #Loaded matrices
-MAJORHIGH = np.loadtxt('majorHighMatrix.txt', dtype = np.int32)
-MAJORLOW = np.loadtxt('majorLowMatrix.txt', dtype = np.int32)
-MAJORCHORD = np.loadtxt('majorChordMatrix.txt', dtype = np.int32)
+MAJORHIGH = None # np.loadtxt('majorHighMatrix.txt', dtype = np.int32)
+MAJORLOW = None # np.loadtxt('majorLowMatrix.txt', dtype = np.int32)
+MAJORCHORD = None # np.loadtxt('majorChordMatrix.txt', dtype = np.int32)
 MINORHIGH = None #np.loadtxt('minorHighMatrix.txt', dtype = np.int32)
 MINORLOW = None #np.loadtxt('minorLowMatrix.txt', dtype = np.int32)
 MINORCHORD = None #np.loadtxt('minorChordMatrix.txt', dtype = np.int32)
-
-print('Matrix Loading Complete')
 
 # remember what number requests are
 transactionID = 0
@@ -45,6 +48,51 @@ parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
 
 #Keeps track of major (0) /minor (1)
 mood = 0 
+
+def loadMajH(q):
+  q.put([MAJOR_HIGH_FILE, pd.read_csv(MAJOR_HIGH_FILE, sep =' ', header=None)])
+  #q.put(['a', 1])
+  print(1)
+def loadMajL(q):
+  q.put([MAJOR_LOW_FILE, pd.read_csv(MAJOR_LOW_FILE, sep =' ', header=None)])
+  #q.put(['b', 2])
+  print(2)
+def loadMajK(q):
+  q.put([MAJOR_CHORD_FILE, pd.read_csv(MAJOR_CHORD_FILE, sep =' ', header=None)])
+  print(3)
+def loadMinH(q):
+  q.put([MINOR_HIGH_FILE, pd.read_csv(MINOR_HIGH_FILE, sep =' ', header=None)])
+  #q.put(['c', 3])
+  print(4)
+def loadMinL(q):
+  q.put([MINOR_LOW_FILE, pd.read_csv(MINOR_LOW_FILE, sep =' ', header=None)])
+  #q.put(['d', 4])
+  print(5)
+def loadMinK(q):
+  q.put([MINOR_CHORD_FILE, pd.read_csv(MINOR_CHORD_FILE, sep =' ', header=None)])
+  print(6)
+
+# Runs functions in parallel using Process
+# Adapted from https://stackoverflow.com/questions/7207309/python-how-can-i-run-python-functions-in-parallel
+def loadInParallel(*fns):
+  global MATRICES 
+
+  proc = []
+  q = Queue()
+  for fn in fns:
+    p = Process(target=fn, args=(q,))
+    p.start()
+    proc.append(p)
+
+  for x in range(NUM_MATRICES):
+    temp = q.get()
+    MATRICES[temp[0]] = temp[1]
+    print('done', x)
+
+  for p in proc:
+    p.join()
+
+  print('Done loading all matrices')
 
 def getNotes():
   '''
@@ -103,7 +151,17 @@ async def main(websocket, path):
   #except:
   #  print('SERVER ERROR')
 
-start_server = websockets.serve(main, '0.0.0.0', 80)
+def check():
+  global MAJORHIGH
+  print(MAJORHIGH)
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+a = time()
+print('Initializing matrices', a)
+loadInParallel(loadMajH, loadMajL, loadMajK, loadMinH, loadMinL, loadMinK)
+print('Time:', time() - a)
+check()
+
+#start_server = websockets.serve(main, '0.0.0.0', 80)
+
+#asyncio.get_event_loop().run_until_complete(start_server)
+#asyncio.get_event_loop().run_forever()
