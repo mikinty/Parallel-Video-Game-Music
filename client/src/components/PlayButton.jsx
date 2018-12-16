@@ -2,154 +2,53 @@ import React from 'react';
 import Tone from 'tone';
 import * as SECRET from '../KEY';
 import * as CONST from '../CONST';
-import * as DATA from '../DATA';
 
 // Do Tone js setup here
 
 // 10 voice synth
 const SYNTHS = [
   [
-    new Tone.Synth({
-      oscillator: {
-        volume: CONST.VOLUME_CHORD
-      }
-    }),
-    new Tone.Synth({
-      oscillator: {
-        volume: CONST.VOLUME_CHORD
-      }
-    }),
-    new Tone.Synth({
-      oscillator: {
-        volume: CONST.VOLUME_CHORD
-      }
-    })
+    new Tone.Sampler(CONST.PIANO_SETTINGS_FILES, CONST.PIANO_SETTINGS_URL),
+    new Tone.Sampler(CONST.PIANO_SETTINGS_FILES, CONST.PIANO_SETTINGS_URL),
+    new Tone.Sampler(CONST.PIANO_SETTINGS_FILES, CONST.PIANO_SETTINGS_URL)
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Sampler(CONST.PIANO_SETTINGS_FILES, CONST.PIANO_SETTINGS_URL),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Sampler(CONST.PIANO_SETTINGS_FILES, CONST.PIANO_SETTINGS_URL),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Sampler(CONST.VIOLIN_SETTINGS_FILES, CONST.VIOLIN_SETTINGS_URL),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Sampler(CONST.XYLO_SETTINGS_FILES, CONST.XYLO_SETTINGS_URL),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Sampler(CONST.XYLO_SETTINGS_FILES, CONST.XYLO_SETTINGS_URL),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Sampler(CONST.TRUMPET_SETTINGS_FILES, CONST.TRUMPET_SETTINGS_URL),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
-    new Tone.Synth(),
-    new Tone.Synth()
+    new Tone.Sampler(CONST.TUBA_SETTINGS_FILES, CONST.TUBA_SETTINGS_URL),
+    new Tone.Sampler(CONST.TUBA_SETTINGS_FILES, CONST.TUBA_SETTINGS_URL),
+    new Tone.Sampler(CONST.TUBA_SETTINGS_FILES, CONST.TUBA_SETTINGS_URL)
   ],
   [
-    new Tone.Synth({
-      oscillator: {
-        type : 'sine',
-        volume: CONST.VOLUME
-      },
-      envelope : {
-        attack : CONST.ADSR.A,
-        decay : CONST.ADSR.D,
-        sustain : CONST.ADSR.S,
-        release : CONST.ADSR.R
-      }
-    }),
+    new Tone.Synth(),
     new Tone.Synth(),
     new Tone.Synth()
   ],
@@ -318,6 +217,7 @@ export default class PlayButton extends React.Component {
     console.log('Requesting', JSON.stringify(this.props.settings));
 
     Tone.Transport.bpm.value = this.props.settings.tempo;
+
 
     ws.send(JSON.stringify(this.props.settings));
   }

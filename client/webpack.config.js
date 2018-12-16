@@ -1,3 +1,6 @@
+/**
+ * Build configuration for webpack.
+ */
 const webpack = require('webpack');
 
 module.exports = {
