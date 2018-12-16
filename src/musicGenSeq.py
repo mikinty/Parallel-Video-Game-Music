@@ -1,4 +1,6 @@
-# Module: musicGenParallel.py
+'''
+musicGenSeq.py - naive sequential implementation for music generation.
+'''
 import numpy as np
 import time
 from CONST_SERVER import *
