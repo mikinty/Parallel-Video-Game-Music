@@ -71,6 +71,8 @@ async def main(websocket, path):
 
   async for message in websocket:
     data = json.loads(message)
+    
+    print('Received request from client', data)
 
     # parse request
     genre = data['name']
@@ -78,8 +80,8 @@ async def main(websocket, path):
     voices = data['voices']
     numMeasures = data['measures']
 
-    try:
-      await websocket.send(getNotes(genre, mood, voices, numMeasures))
+    # try:
+    await websocket.send(getNotes(genre, mood, voices, numMeasures))
 
     # except:
     # print('SERVER ERROR')
@@ -89,7 +91,6 @@ print('Initializing matrices, will take about 30 seconds')
 a = time()
 loadMatrices()
 print('Time:', time() - a, 'to initialize matrices')
-
 
 ### SERVER INIT ###
 start_server = websockets.serve(main, '0.0.0.0', 80)

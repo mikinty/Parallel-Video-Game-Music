@@ -29,3 +29,22 @@ MINOR_LOW_FILE = FOLDER + 'minorLowMatrix.pkl'
 MINOR_CHORD_FILE = FOLDER + 'minorChordMatrix.pkl'
 
 NUM_MATRICES = 6
+
+# Note durations that we support
+NOTE_DURATIONS = [
+  0.083, 
+  0.167, 
+  0.250, 
+  0.333, 
+  0.500, 
+  0.667, 
+  0.750, 
+  1.000, 
+  1.333, 
+  1.500, 
+  1.750, 
+  2.000, 
+  3.000, 
+  4.000, 
+  8.000
+]

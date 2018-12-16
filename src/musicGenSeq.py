@@ -33,13 +33,13 @@ def nextNote(prev1, prev2, partMarker, matrix, mood):
         tone = np.random.choice(1728) + CHORDOFFSET				
 
 		#Get random chord duration from 4 to 15 (at least quarter note)
-    duration = np.random.randint(4, 16)
+    duration = np.random.randint(7, 15)
 
   else : #melodic line
     if prev2 == None or prev1 == None : #Pick random notes weighted by music theoretic ideas
       tone = np.random.choice(12, p = [0.5, 0, 0.1, 0.1, 0.1, 0.2, 0, 0, 0, 0, 0, 0])
       tone = tone + np.random.randint(NUMOCTAVES) * 12 #Get random octave
-      duration = np.random.randint(0, 16)
+      duration = np.random.randint(0, 13)
 
     else: #Get note based on previous notes
   		#Get matrix line
@@ -61,7 +61,7 @@ def nextNote(prev1, prev2, partMarker, matrix, mood):
 #Creates and stores a total of NUMMEASURES of music in parallel,
 #split by parts
 def generatePart(matrix, partMarker, mood, partMusic, numMeasures):
-  numBeatsFilled = 0
+  numBeatsFilled = 0.0
 
   prev1 = None
   prev2 = None
@@ -71,10 +71,12 @@ def generatePart(matrix, partMarker, mood, partMusic, numMeasures):
 		#Get next note
     tone, duration = nextNote(prev1, prev2, partMarker, matrix, mood)
 
-    numBeatsFilled = numBeatsFilled + (duration + 1)
+    numBeatsFilled = numBeatsFilled + NOTE_DURATIONS[duration]
     #If too long, chop note off at end of measure
     if (numBeatsFilled > numMeasures * BEATSPERMEASURE) :
-      duration = duration - (numBeatsFilled - numMeasures * BEATSPERMEASURE)
+      extra = numMeasures * BEATSPERMEASURE - (numBeatsFilled - NOTE_DURATIONS[duration])
+      while (duration > 0 and NOTE_DURATIONS[duration] > extra):
+        duration = duration - 1
 
 		#Add note to music array 
     partMusic.append([tone, duration])
@@ -102,7 +104,7 @@ def generateMusic(genre, mood, voices, numMeasures, MAJORHIGH, MAJORLOW, MAJORCH
     chords = MINORCHORD
     
 
-  for index, partMarker in enumerate(parts):
+  for index, partMarker in enumerate(voices):
     if (partMarker == -1): #silent
       continue
     elif (partMarker == 0): #chord
@@ -116,7 +118,7 @@ def generateMusic(genre, mood, voices, numMeasures, MAJORHIGH, MAJORLOW, MAJORCH
 
 
   if genre == SETTINGS_JOURNEY:
-    for index, partMarker in enumerate(parts):
+    for index, partMarker in enumerate(voices):
       if (partMarker == -1): #silent
         continue
       elif (partMarker == 0): #chord
@@ -128,7 +130,7 @@ def generateMusic(genre, mood, voices, numMeasures, MAJORHIGH, MAJORLOW, MAJORCH
       else: #Error
         print ('Error: Part assignment not allowed')
 
-    for index, partMarker in enumerate(parts):
+    for index, partMarker in enumerate(voices):
       if (partMarker == -1): #silent
         continue
       elif (partMarker == 0): #chord
