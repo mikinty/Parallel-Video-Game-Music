@@ -15,7 +15,7 @@ export const NOTE_TYPES = [
   'B'
 ];
 
-export const CHORD_START = 2;
+export const CHORD_START = 3;
 
 // Music constants mapped to 0 - 71
 export const NOTE_MAPPINGS = [
@@ -109,7 +109,7 @@ export const REST_NOTE = 72;
 export const CHORD_OFFSET = 101;
 
 // Note durations mapped to 0 - 14
-export const NOTE_DURATIONS = [
+export const NOTE_DURATIONS_RAW = [
   0.083, // 1
   0.167, // 2
   0.250, // 3
@@ -127,6 +127,24 @@ export const NOTE_DURATIONS = [
   8.000  // 96
 ];
 
+export const NOTE_DURATIONS = [
+  '1i', // 1
+  '2i', // 2
+  '3i', // 3
+  '4i', // 4
+  '6i', // 6
+  '8i', // 8
+  '9i', // 9
+  '12i', // 12
+  '16i', // 16
+  '18i', // 18
+  '21i', // 21
+  '24i', // 24
+  '36i', // 36
+  '48i', // 48
+  '96i'  // 96
+];
+
 // Server commands
 export const START_MUSIC_REQ = 'START_MUSIC';
 
@@ -141,27 +159,45 @@ export const START_MUSIC_REQ = 'START_MUSIC';
 export const SETTINGS_BASIC = {
   name: 'basic',
   mood: 0,
-  voices: [0, 1, 2, 0, 0, 0, 0, 0, 0, 0],
-  tempo: 200
+  voices: [0, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+  measures: 5,
+  tempo: 10
 };
 
 export const SETTINGS_JOURNEY = {
   name: 'journey',
   mood: 0,
-  voices: [0, 1, 2, 2, 0, 0, 0, 0, 0, 0],
-  tempo: 220
+  voices: [0, 1, 2, -1, -1, -1, -1, -1, -1, -1],
+  measures: 10,
+  tempo: 10
 };
 
 export const SETTINGS_SORROW = {
   name: 'sorrow',
   mood: 1,
-  voices: [0, 1, 1, 2, 0, 0, 0, 0, 0, 0],
-  tempo: 150
+  voices: [0, -1, 1, 1, -1, -1, -1, -1, -1, -1],
+  measures: 8,
+  tempo: 8
 };
 
-export const SETTINGS_BATTLE= {
+export const SETTINGS_BATTLE = {
   name: 'battle',
   mood: 1,
-  voices: [0, 0, 1, 1, 2, 2, 0, 0, 0, 0],
-  tempo: 300
+  voices: [-1, -1, -1, 1, 2, 2, 2, -1, -1, -1],
+  measures: 10,
+  tempo: 13
 };
+
+export const VOLUME = -2;
+export const ADSR = {
+  A: 0.05,
+  D: 0.5,
+  S: 0.2,
+  R: 1
+};
+
+export const VOLUME_CHORD = -1;
+
+export const LOWPASS_FREQ = 3000;
+
+export const HIGHPASS_FREQ = 0;

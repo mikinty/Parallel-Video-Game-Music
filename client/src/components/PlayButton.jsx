@@ -9,22 +9,35 @@ import * as DATA from '../DATA';
 // 10 voice synth
 const SYNTHS = [
   [
-    new Tone.Synth(),
-    new Tone.Synth(),
-    new Tone.Synth() 
+    new Tone.Synth({
+      oscillator: {
+        volume: CONST.VOLUME_CHORD
+      }
+    }),
+    new Tone.Synth({
+      oscillator: {
+        volume: CONST.VOLUME_CHORD
+      }
+    }),
+    new Tone.Synth({
+      oscillator: {
+        volume: CONST.VOLUME_CHORD
+      }
+    })
   ],
   [
-    new Tone.Synth(),
-    new Tone.Synth(),
-    new Tone.Synth()
-  ],
-  [
-    new Tone.Synth(),
-    new Tone.Synth(),
-    new Tone.Synth()
-  ],
-  [
-    new Tone.Synth(),
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
     new Tone.Synth(),
     new Tone.Synth()
   ],
@@ -32,50 +45,147 @@ const SYNTHS = [
     new Tone.Synth({
       oscillator: {
         type : 'sine',
-        volume: -6
+        volume: CONST.VOLUME
       },
       envelope : {
-        attack : 0.05,
-        decay : 0.25,
-        sustain : 0.5,
-        release : 1,
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
       }
     }),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
-    new Tone.Synth(),
-    new Tone.Synth(),
-    new Tone.Synth()
-  ],
-  [
-    new Tone.Synth(),
-    new Tone.Synth(),
-    new Tone.Synth()
-  ],
-  [
-    new Tone.Synth(),
-    new Tone.Synth(),
-    new Tone.Synth()
-  ],
-  [
-    new Tone.Synth(),
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
     new Tone.Synth(),
     new Tone.Synth()
   ],
   [
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
     new Tone.Synth(),
+    new Tone.Synth()
+  ],
+  [
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
+    new Tone.Synth(),
+    new Tone.Synth()
+  ],
+  [
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
+    new Tone.Synth(),
+    new Tone.Synth()
+  ],
+  [
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
+    new Tone.Synth(),
+    new Tone.Synth()
+  ],
+  [
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
+    new Tone.Synth(),
+    new Tone.Synth()
+  ],
+  [
+    new Tone.Synth({
+      oscillator: {
+        type : 'sine',
+        volume: CONST.VOLUME
+      },
+      envelope : {
+        attack : CONST.ADSR.A,
+        decay : CONST.ADSR.D,
+        sustain : CONST.ADSR.S,
+        release : CONST.ADSR.R
+      }
+    }),
     new Tone.Synth(),
     new Tone.Synth()
   ]
 ];
 
+var lpf = new Tone.Filter({
+  type: 'lowpass',
+  frequency: CONST.LOWPASS_FREQ
+}).toMaster();
+
+var hpf = new Tone.Filter({
+  type: 'highpass',
+  frequency: CONST.HIGHPASS_FREQ
+}).connect(lpf);
+
 // connect to speakers
 SYNTHS.forEach(s => {
-  s[0].toMaster();
-  s[1].toMaster();
-  s[2].toMaster(); 
+  s[0].connect(hpf);
+  s[1].connect(hpf);
+  s[2].connect(hpf); 
 });
 
 Tone.Transport.bpm.value = 220;
@@ -126,11 +236,11 @@ function parseChord (chord) {
 function playNotes (notes) {
   // reset transport
   Tone.Transport.stop();
-  Tone.Transport.clear(0);
+  Tone.Transport.cancel();
   Tone.Transport.seconds = 0;
 
   // parse through the notes we are getting  
-  for (let j = 3; j < 5; j++) {
+  for (let j = 0; j < notes.length; j++) {
     var currTime = 0;
 
     for (let i = 0; i < notes[j].length; i++) { 
@@ -142,13 +252,13 @@ function playNotes (notes) {
       // Schedule the music we just received
       if (note == CONST.REST_NOTE) {
         // rest
-        Tone.Transport.schedule((time) => {
+        Tone.Transport.scheduleOnce((time) => {
           console.log('rest');
           SYNTHS[j][0].triggerRelease(time);
         }, currTime);
       } else if (note < CONST.REST_NOTE) {
         // note
-        Tone.Transport.schedule((time) => {
+        Tone.Transport.scheduleOnce((time) => {
           SYNTHS[j][0].triggerAttackRelease (
             CONST.NOTE_MAPPINGS[note],
             CONST.NOTE_DURATIONS[duration],
@@ -160,8 +270,8 @@ function playNotes (notes) {
         let tempNotes = parseChord(note);
 
         for (let i = 0; i < tempNotes.length; i++) {
-          Tone.Transport.schedule((time) => {
-            console.log('chords playing', tempNotes[i], CONST.NOTE_DURATIONS[duration]);  
+          Tone.Transport.scheduleOnce((time) => {
+            console.log('chords playing', tempNotes, CONST.NOTE_DURATIONS[duration]);  
 
             SYNTHS[j][i].triggerAttackRelease (
               tempNotes[i],
@@ -172,11 +282,12 @@ function playNotes (notes) {
         }
       }
 
-      currTime = currTime + CONST.NOTE_DURATIONS[notes[j][i][1]];
+      currTime = currTime + Tone.Time(CONST.NOTE_DURATIONS[notes[j][i][1]]).toSeconds();
     }
   }
 
-  console.log('starting', Tone.Transport);
+  console.log('Start playing at', Tone.Transport.bpm.value);
+  console.log(Tone.Transport);
   Tone.Transport.start();
 }
 
@@ -195,12 +306,19 @@ export default class PlayButton extends React.Component {
 
     // ES6 requires binding
     this.handleClick = this.handleClick.bind(this);
+
+    this.state = {
+      genre: CONST.SETTINGS_BASIC.name
+    };
   }
 
   // Called when we click play
   // Requests music from the server
   handleClick () {
     console.log('Requesting', JSON.stringify(this.props.settings));
+
+    Tone.Transport.bpm.value = this.props.settings.tempo;
+
     ws.send(JSON.stringify(this.props.settings));
   }
 

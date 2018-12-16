@@ -10,7 +10,7 @@ export default class RadioSelect extends React.Component {
     super(props);
 
     this.state = {
-      selected: 'Basic'
+      selected: 'basic'
     };
   }
 
