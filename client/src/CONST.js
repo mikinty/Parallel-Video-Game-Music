@@ -202,7 +202,10 @@ export const LOWPASS_FREQ = 3000;
 
 export const HIGHPASS_FREQ = 0;
 
-
+/** 
+ * A bunch of configuration files for Tone.Sampler
+ * Requires samples to be placed in the dist/ folder
+ */
 export const PIANO_SETTINGS_FILES = {
   'A0': 'A0.[mp3|ogg]',
   'A1': 'A1.[mp3|ogg]',
