@@ -1,7 +1,38 @@
 export const TITLE = 'Parallel Video Game Music';
 
+export const NOTE_TYPES = [
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B'
+];
+
+export const CHORD_START = 2;
+
 // Music constants mapped to 0 - 71
 export const NOTE_MAPPINGS = [
+  // Octave 1
+  'C1',
+  'C#1',
+  'D1',
+  'D#1',
+  'E1',
+  'F1',
+  'F#1',
+  'G1',
+  'G#1',
+  'A1',
+  'A#1',
+  'B1',
+
   // Octave 2
   'C2',
   'C#2',
@@ -70,24 +101,12 @@ export const NOTE_MAPPINGS = [
   'G#6',
   'A6',
   'A#6',
-  'B6',
-
-  // Octave 7
-  'C7',
-  'C#7',
-  'D7',
-  'D#7',
-  'E7',
-  'F7',
-  'F#7',
-  'G7',
-  'G#7',
-  'A7',
-  'A#7',
-  'B7'
+  'B6'
 ];
 
-export const REST_NOTE = 73;
+export const DISTINCT_NOTES = 12;
+export const REST_NOTE = 72;
+export const CHORD_OFFSET = 101;
 
 // Note durations mapped to 0 - 14
 export const NOTE_DURATIONS = [
@@ -106,24 +125,6 @@ export const NOTE_DURATIONS = [
   3.000, // 36
   4.000, // 48
   8.000  // 96
-];
-
-export const NOTE_DURATIONS_REL = [
-  1,
-  2,
-  3,
-  4,
-  6,
-  8,
-  9,
-  12,
-  16,
-  18,
-  21,
-  24,
-  36,
-  48,
-  96
 ];
 
 // Server commands
