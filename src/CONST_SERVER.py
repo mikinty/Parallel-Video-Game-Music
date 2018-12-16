@@ -3,7 +3,7 @@ Constants for the server code
 '''
 
 # Music settings
-NUMMEASURES = 4
+NUMMEASURES = 1024 
 BEATSPERMEASURE = 16 #Using 16th notes
 NUMPARTS = 10
 NUMTONES = 73
