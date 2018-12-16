@@ -123,7 +123,20 @@ For training, we first noted that there are certain portions of the algorithm wh
 
 In order to verify proper isolation of the parallel portion of the algorithm, we also collected runtime data on the initialization and GPU-CPU transfer steps. These times remained constant across all input file sizes as seen below, verifying our isolation.
 
-#### Figure for constant setup times
+| | Allocating Host Memory | Allocating Device Memory	| Parsing File and Counting Transitions | Copying to Host	| Free Memory | Total |
+| --- | ---  | --- | --- | --- | --- | --- |
+| Parallel Pinned	| 10.31047	| 9.545223|	3.361578|	0.013167|	4.644862|	27.8753|
+|Parallel Unpinned|	1.398417	|3.524767	|3.370691	|7.993404	|0.049685|	16.336964|
+|Sequential|	0.000051	|0	|8.501543	|0	|0.045188|	8.546782|
+
+For our algorithm, we considered both pinned and unpinned memory for our CUDA memory allocations. The difference between the two types of allocations is that pinned memory uses optimizations that help make copying data to the host extremely fast, but on the other hand, has a high overhead of setting up. In the table above, the pinned implementation, although having a very fast copying to host time, suffered from a setup time that made unpinned memory faster to use. In addition, unpinned memory had a faster time to free memory, since it used standard `malloc()` instead of the pinned `cudaHostAlloc()`.
+
+In terms of areas to improve, the sequential algorithm spends almost all of its time parsing and counting transitions. We broke down this operation into two main components:
+
+1. Reading the input files
+2. Adding note transitions to the matrix
+
+Unfortunately, reading the input files has to be done sequentially, because I/O on the disk is slow. We considered breaking up the file into smaller chunks and using multiple processors to read "in parallel", but found that the I/O speed limitations were the main factor, rather than any computation done by the CPU. Therefore, the main area to improve was adding note transitions to the matrix, which is what our CUDA algorithm was optimizing.
 
 ### Speedup Graphs
 
@@ -187,13 +200,22 @@ Because we were doing speedup over processors, we had limitations in:
 2. __Problem definition:__ We only support 10 voices in our music generation. In each voice, since we use a Markov Chain to generate notes, which is a sequential process, there is no parallelism possible there. Therefore, the maximum speedup we should expect is 10.
 3. __Memory transfer:__ Since we did each voice computation on a different processor, which all have different memory spaces, we had to combine all the results into one memory space at the end. This step can have limitations in hardware, where the way the CPUs are connected will have a maximum bandwidth.
 
-### Execution Time Breakdown
-
 ## Machine Choice
 
-For our project, we used two machines, an AWS p2.xlarge instance, and a standard Dell XPS laptop.
+For our project, we used two machines:
 
-For the 
+- AWS p2.xlarge instance
+- Dell XPS laptop
+
+### AWS Instance
+
+The most computationally intensive parts of our project included the training and music generation algorithms. We noted that for the training, we had to perform a large number of simple actions, i.e. updating a cell of a matrix, so we found CUDA to be a good fit for that operation. In addition, since we had a very large problem size, we wanted to utilize multiple GPUs. For music generation we knew that music rarely has more than 20 voices at once, so the parallelism wouldn't be very effective on something like a GPU. Therefore, a CPU was a good choice for this step, where we still wanted some parallelism, but didn't want to invoke the high cost of a GPU if we weren't going to utilize all of its threads. For both of these steps, having a large RAM was very important, as the Markov matrices combined to use over 40GB of memory. Finally, for taking care of client requests, we needed a machine that could act as a server and respond to requests from the internet. 
+
+Therefore, we needed a machine that had internet capabilities, had many GPUs, CPUs, and plentiful of RAM. AWS was the perfect option to fit all these needs.
+
+### Dell XPS
+
+The client side did not need to have many capabilities, besides internet access and a display for users to interact with. In addition, there are frontend technology requirements, but those can all be installed relatively easier. Therefore, the hardware specifications were not too stringent. However, for a better web client experience, we wanted the display to be high resolution, and the Dell XPS has a good monitor to support sharp images.
 
 # Future Work
 
