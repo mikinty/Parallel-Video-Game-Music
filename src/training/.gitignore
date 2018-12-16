@@ -1,0 +1,5 @@
+# do not commit text files
+*.txt
+main
+mainFileLoad
+mainSeq
