@@ -291,6 +291,7 @@ A major goal of video games is to give the gamer an immersive experience in the 
 # Work Distribution
 
 Total credit should be distributed 50% - 50%.
+
 | Annie's Work | Michael's Work | Both |
 | ---  | --- | --- |
 | Matrix Training Algorithm | Pre-processing Algorithm | Lit Review + Model |
@@ -299,4 +300,4 @@ Total credit should be distributed 50% - 50%.
 | Music Generation Threading | Training Timing Results | Further Reference Research |
 | Music Generation Base Timing Results | Making Figures | Poster Creation |
 | Training with File Loading Results | Music Generation MultiProcessing | Presentation |
-| | Music Generation Input Creation | Writeup |
+| . | Music Generation Input Creation | Writeup |
