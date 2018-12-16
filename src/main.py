@@ -103,9 +103,6 @@ async def main(websocket, path):
   
   global transactionID
 
-  # TODO: use try catches for more robust server, but for
-  # now we need to seee what the actual errors are...
-  # try:
   async for message in websocket:
     data = json.loads(message)
 
@@ -132,9 +129,6 @@ async def main(websocket, path):
     	parts = np.array(data['info']); 
     else:
       print('Unknown request')
-
-  #except:
-  #  print('SERVER ERROR')
 
 
 a = time()

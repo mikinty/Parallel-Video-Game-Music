@@ -42,7 +42,6 @@ export default class RadioSelect extends React.Component {
     console.log('Selected', event.target.value);
   }
 
-  // TODO: put the radio options into separate files
   // Code adapted from https://codepen.io/anon/pen/NEMJvr
   render() {
     return (
