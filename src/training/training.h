@@ -5,7 +5,7 @@
 #define CHORD_OFFSET 101
 /* num threads per block */
 #define NUM_THREADS 1024
-#define ARRAY_LENGTH 100000
+#define ARRAY_LENGTH 10000000000
 #define NUM_NOTES (NUM_TONES * NUM_DUR)
 /*Constants regarding matrices*/
 #define NUM_MATRICES 6
