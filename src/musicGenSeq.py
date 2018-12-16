@@ -1,11 +1,7 @@
 # Module: musicGenParallel.py
 import numpy as np
-import threading
 import time
 from CONST_SERVER import *
-import multiprocessing as mp
-from functools import partial
-from pickle import load
 
 #Generates next note based on previous notes
 #Returns a (tone, duration) pair
@@ -64,30 +60,21 @@ def nextNote(prev1, prev2, partMarker, matrix, mood):
 
 #Creates and stores a total of NUMMEASURES of music in parallel,
 #split by parts
-def generatePart(matrixType, partMarker, mood):
-  if matrixType == 2:
-    matrix = MAJORHIGH = load(open(MAJOR_HIGH_FILE, 'rb'))
-  elif matrixType == 1:
-    matrix = MAJORLOW = load(open(MAJOR_LOW_FILE, 'rb'))
-  elif matrixType == 0:
-    matrix = MAJORCHORD = load(open(MAJOR_CHORD_FILE, 'rb'))
-  else:
-    return []
-
+def generatePart(matrix, partMarker, mood, partMusic, numMeasures):
   numBeatsFilled = 0
-  partMusic = []
+
   prev1 = None
   prev2 = None
 
 	#Generating notes
-  while numBeatsFilled < NUMMEASURES * BEATSPERMEASURE : 
+  while numBeatsFilled < numMeasures * BEATSPERMEASURE: 
 		#Get next note
     tone, duration = nextNote(prev1, prev2, partMarker, matrix, mood)
 
     numBeatsFilled = numBeatsFilled + (duration + 1)
     #If too long, chop note off at end of measure
-    if (numBeatsFilled > NUMMEASURES * BEATSPERMEASURE) :
-      duration = duration - (numBeatsFilled - NUMMEASURES * BEATSPERMEASURE)
+    if (numBeatsFilled > numMeasures * BEATSPERMEASURE) :
+      duration = duration - (numBeatsFilled - numMeasures * BEATSPERMEASURE)
 
 		#Add note to music array 
     partMusic.append([tone, duration])
@@ -95,52 +82,26 @@ def generatePart(matrixType, partMarker, mood):
     prev2 = prev1
     prev1 = [tone, duration]
 
-  return partMusic
-
-def f (mood, partMarker):
-  return generatePart(partMarker, partMarker, mood)
-
-  '''
-  print(partMarker)
-  if (partMarker == 0): #chord
-    return generatePart(chords, partMarker, mood)
-  elif (partMarker == 1): #bass
-    return generatePart(lowNotes, partMarker, mood)
-  elif (partMarker == 2): #soprano
-    return generatePart(highNotes, partMarker, mood)
-  return []
-  '''
+  return
 
 #Calls GPU to generate NUMMEASURES total measures of music
 #Returns a 2D array containing the (tone, duration) pairs of the
 #music generated, split by part (as assigned by the parts variable)
-def generateMusic(highNotes, lowNotes, chords, parts, mood):
+def generateMusic(highNotes, lowNotes, chords, parts, mood, numMeasures):
 
-  pool = mp.Pool(processes=10)
+  music = [[] for i in range(10)]
 
-  fPart = partial(f, mood)
-
-  music = pool.map(fPart, parts)
-
-  pool.close()
-
-  '''
   for index, partMarker in enumerate(parts):
     t = None
     if (partMarker == -1): #silent
       continue
     elif (partMarker == 0): #chord
-      t = threading.Thread(target = generatePart, args = (chords, partMarker, mood, music[index]))
+      generatePart(chords, partMarker, mood, music[index], numMeasures)
     elif (partMarker == 1): #bass
-      t = threading.Thread(target = generatePart, args = (lowNotes, partMarker, mood, music[index]))
+      generatePart(lowNotes, partMarker, mood, music[index], numMeasures)
     elif (partMarker == 2): #soprano
-      t = threading.Thread(target = generatePart, args = (highNotes, partMarker, mood, music[index]))
+      generatePart(highNotes, partMarker, mood, music[index], numMeasures)
     else: #Error
       print ('Error: Part assignment not allowed')
-    t.start()
-    threads.append(t)
-
-  for t in threads:
-    t.join()'''
 
   return music

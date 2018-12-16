@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
-import musicGenParallel as mgp
+import musicGenSeq as mgp
 import asyncio
 import websockets
 import json
 from pickle import load, dump
 from time import time
 import math
-
-from multiprocessing import Process, Queue
 
 from CONST_SERVER import *
 
@@ -45,6 +43,7 @@ lowNotes = None
 chords = None
 
 #Array of parts, where 0 = chord, 1 = bass, 2 = soprano, -1 = silent
+#parts = np.array([0, 0, 1, 1, 2, 2, -1, -1, -1, -1])
 parts = np.array([0, 0, 1, 1, 2, 2, 0, 0, 1, 2])
 
 #Keeps track of major (0) /minor (1)
@@ -79,7 +78,7 @@ def loadMatrices():
 
   print('Done loading all matrices')
 
-def getNotes():
+def getNotes(n):
   '''
   Returns the generated notes.
   returns: json of notes and corresponding transaction ID
@@ -88,7 +87,7 @@ def getNotes():
   #Array of music generated, assuming 4/4 time signature
 	#2D array of (note, duration) pairs split by parts (up to 10)
 	#Calls GPUs to generate measures of music
-  music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood)
+  music = mgp.generateMusic(highNotes, lowNotes, chords, parts, mood, n) 
 
   return json.dumps({'id': transactionID, 'notes': music})
 
@@ -137,9 +136,21 @@ async def main(websocket, path):
   #  print('SERVER ERROR')
 
 
+print('Initializing matrices, will take about 30 seconds')
 a = time()
-getNotes()
-print('Time:', time() - a, 'to get notes for', NUMMEASURES, 'measures')
+loadMatrices()
+print('Time:', time() - a, 'to initialize matrices')
+
+#measures = [1, 4, 10, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
+
+measures = [98304]
+
+for numM in measures:
+  for i in range(1): 
+    print('getting notes for', numM, 'measures')
+    a = time()
+    getNotes(numM)
+    print('Time:', time() - a, 'to get notes for', numM, 'measures')
 
 #start_server = websockets.serve(main, '0.0.0.0', 80)
 
