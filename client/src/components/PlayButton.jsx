@@ -4,7 +4,30 @@ import * as SECRET from '../KEY';
 import * as CONST from '../CONST';
 import * as DATA from '../DATA';
 
-const synth = new Tone.Synth().toMaster();
+// Do Tone js setup here
+
+// 10 voice synth
+const SYNTHS = [
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth(),
+  new Tone.Synth()
+];
+
+SYNTHS[0].oscillator.type = 'triangle';
+SYNTHS[0].oscillator.type = 'sawtooth';
+
+// connect to speakers
+SYNTHS.forEach(s => s.toMaster());
+
+Tone.Transport.bpm.value = 160;
+
 // const transport = new Tone.Transport();
 const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
 
@@ -14,24 +37,35 @@ const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
  * @param {array array (note * duration)} notes 
  */
 function playNotes (notes) {
-  var currTime = 0;
+  // reset transport
+  Tone.Transport.stop();
+  Tone.Transport.clear(0);
+  Tone.Transport.seconds = 0;
 
-  for (let j = 4; j < 5; j++) {
+  // parse through the notes we are getting  
+  for (let j = 8; j < 9; j++) {
+    var currTime = 0;
     for (let i = 0; i < notes[j].length; i++) { 
-
+      // Schedule the music we just received
       Tone.Transport.schedule((time) => {
         console.log(
-          'playing', 
+          j,
+          'playing',
           CONST.NOTE_MAPPINGS[notes[j][i][0]], 
           CONST.NOTE_DURATIONS[notes[j][i][1]],
           time
         );
 
-        synth.triggerAttackRelease (
-          CONST.NOTE_MAPPINGS[notes[j][i][0]],
-          CONST.NOTE_DURATIONS[notes[j][i][1]],
-          time
-        );
+        if (notes[j][i][0] == CONST.REST_NOTE) {
+          SYNTHS[j].triggerRelease (time);
+        } else {
+          SYNTHS[j].triggerAttackRelease (
+            CONST.NOTE_MAPPINGS[notes[j][i][0]],
+            CONST.NOTE_DURATIONS[notes[j][i][1]],
+            time
+          );
+        }
+        
       }, currTime);
 
       currTime = currTime + CONST.NOTE_DURATIONS[notes[j][i][1]];
@@ -55,16 +89,11 @@ ws.onmessage = (event) => {
 export default class RadioSelect extends React.Component {
   constructor () {
     super();
-
-    // setup our synthesizer
-    synth.toMaster();
   }
   
 
   // Called when we click play
   handleClick () {
-    synth.triggerAttackRelease("C4", 0.25);
-
     /*
     ws.send(JSON.stringify({
       request: CONST.START_MUSIC_REQ,
