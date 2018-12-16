@@ -11,7 +11,7 @@ in `CONST.py`:
 
 - 0-71: notes
 - 72: rest
-- >= 101: base 12-encoded version of a 3-note chord
+- 101 and above: base 12-encoded version of a 3-note chord
 - 0-14: correspond to durations
 
 The encoding in the text file is written as
