@@ -2,9 +2,44 @@ import React from 'react';
 import Tone from 'tone';
 import * as SECRET from '../KEY';
 import * as CONST from '../CONST';
+import * as DATA from '../DATA';
 
-const synth = new Tone.Synth();
+const synth = new Tone.Synth().toMaster();
+// const transport = new Tone.Transport();
 const ws = new WebSocket('ws://' + SECRET.SECRET_ADDRESS);
+
+/**
+ * Plays the notes specified by notes
+ * 
+ * @param {array array (note * duration)} notes 
+ */
+function playNotes (notes) {
+  var currTime = 0;
+
+  for (let j = 4; j < 5; j++) {
+    for (let i = 0; i < notes[j].length; i++) { 
+
+      Tone.Transport.schedule((time) => {
+        console.log(
+          'playing', 
+          CONST.NOTE_MAPPINGS[notes[j][i][0]], 
+          CONST.NOTE_DURATIONS[notes[j][i][1]],
+          time
+        );
+
+        synth.triggerAttackRelease (
+          CONST.NOTE_MAPPINGS[notes[j][i][0]],
+          CONST.NOTE_DURATIONS[notes[j][i][1]],
+          time
+        );
+      }, currTime);
+
+      currTime = currTime + CONST.NOTE_DURATIONS[notes[j][i][1]];
+    }
+  }
+
+  Tone.Transport.start();
+}
 
 // listen to websocket events
 ws.onmessage = (event) => {
@@ -13,22 +48,8 @@ ws.onmessage = (event) => {
   // [[[a, b]], [[c, d]], [] ]
   var notes = JSON.parse(event.data).notes;
 
-  var currTime = 0;
+  playNotes(notes);
 
-  for (let j = 2; j < notes.length; j++) {
-    for (let i = 0; i < notes[j].length; i++) {
-      console.log('playing', notes[j][i]);
-
-      synth.triggerAttackRelease (
-        CONST.NOTE_MAPPINGS[notes[j][i][0]],
-        CONST.NOTE_DURATIONS[notes[j][i][1]],
-        currTime
-      );
-    }
-
-    console.log(notes[0][0][1]);
-    currTime = currTime + CONST.NOTE_DURATIONS[notes[0][0][1]];
-  }
 }
 
 export default class RadioSelect extends React.Component {
@@ -43,10 +64,15 @@ export default class RadioSelect extends React.Component {
   // Called when we click play
   handleClick () {
     synth.triggerAttackRelease("C4", 0.25);
+
+    /*
     ws.send(JSON.stringify({
       request: CONST.START_MUSIC_REQ,
       data: 'TODD MOWRY IS THE BEST'
     }));
+    */
+
+    playNotes(DATA.testNotes);
   }
 
   render() {
