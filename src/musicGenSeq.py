@@ -87,12 +87,22 @@ def generatePart(matrix, partMarker, mood, partMusic, numMeasures):
 #Calls GPU to generate NUMMEASURES total measures of music
 #Returns a 2D array containing the (tone, duration) pairs of the
 #music generated, split by part (as assigned by the parts variable)
-def generateMusic(highNotes, lowNotes, chords, parts, mood, numMeasures):
+def generateMusic(genre, mood, voices, numMeasures, MAJORHIGH, MAJORLOW, MAJORCHORD, MINORHIGH, MINORLOW, MINORCHORD):
+  music = [[] for i in range(NUMPARTS)]
 
-  music = [[] for i in range(10)]
+  numIter = 1
+
+  highNotes = MAJORHIGH
+  lowNotes = MAJORLOW
+  chords = MAJORCHORD
+
+  if genre == SETTINGS_SORROW:
+    highNotes = MINORHIGH
+    lowNotes = MINORLOW
+    chords = MINORCHORD
+    
 
   for index, partMarker in enumerate(parts):
-    t = None
     if (partMarker == -1): #silent
       continue
     elif (partMarker == 0): #chord
@@ -103,5 +113,31 @@ def generateMusic(highNotes, lowNotes, chords, parts, mood, numMeasures):
       generatePart(highNotes, partMarker, mood, music[index], numMeasures)
     else: #Error
       print ('Error: Part assignment not allowed')
+
+
+  if genre == SETTINGS_JOURNEY:
+    for index, partMarker in enumerate(parts):
+      if (partMarker == -1): #silent
+        continue
+      elif (partMarker == 0): #chord
+        generatePart(MINORCHORD, partMarker, mood, music[index], numMeasures)
+      elif (partMarker == 1): #bass
+        generatePart(MINORLOW, partMarker, mood, music[index], numMeasures)
+      elif (partMarker == 2): #soprano
+        generatePart(MINORHIGH, partMarker, mood, music[index], numMeasures)
+      else: #Error
+        print ('Error: Part assignment not allowed')
+
+    for index, partMarker in enumerate(parts):
+      if (partMarker == -1): #silent
+        continue
+      elif (partMarker == 0): #chord
+        generatePart(MAJORCHORD, partMarker, mood, music[index], numMeasures)
+      elif (partMarker == 1): #bass
+        generatePart(MAJORLOW, partMarker, mood, music[index], numMeasures)
+      elif (partMarker == 2): #soprano
+        generatePart(MAJORHIGH, partMarker, mood, music[index], numMeasures)
+      else: #Error
+        print ('Error: Part assignment not allowed')
 
   return music

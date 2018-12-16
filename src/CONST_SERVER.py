@@ -13,6 +13,12 @@ NUMOCTAVES = 6
 NUMCHORDS = 1728
 NUMNOTES = 1095
 
+# Labels
+SETTINGS_BASIC = 'basic'
+SETTINGS_JOURNEY = 'journey'
+SETTINGS_SORROW = 'sorrow'
+SETTINGS_BATTLE = 'battle'
+
 # Load 
 FOLDER = ''
 MAJOR_HIGH_FILE = FOLDER +'majorHighMatrix.pkl'
