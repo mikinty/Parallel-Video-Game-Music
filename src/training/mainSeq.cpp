@@ -4,8 +4,10 @@
 #include "training.h"
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 //Define global variables
 int* majorHighNotes;
@@ -22,7 +24,7 @@ void outputMatrices() {
   
   //For each matrix, copy matrix into file
 	std::ofstream outFile;
-	/*outFile.open("majorHighMatrixNew.txt");
+	outFile.open("majorHighMatrixNew.txt");
 	for (int i = 0; i < NUM_NOTES * NUM_NOTES; i ++){
 		for (int j = 0; j < NUM_NOTES; j++){
 			outFile << majorHighNotes[i * NUM_NOTES + j] << " ";
@@ -76,8 +78,8 @@ void outputMatrices() {
   outFile.close();
 
   printf("Printing 5/6 complete\n");
-*/
-  outFile.open("minorChordMatrixSeq.txt");
+
+  outFile.open("minorChordMatrixNew.txt");
   for (int i = 0; i < NUM_CHORDS; i ++){
     for (int j = 0; j < NUM_CHORDS; j++){
       outFile << minorChords[i * NUM_CHORDS + j] << " ";
@@ -89,7 +91,7 @@ void outputMatrices() {
   printf("Printing 6/6 complete\n");
 
   //Remove all old files, and replace with the new matrix files
-  /*remove("majorHighMatrix.txt");
+  remove("majorHighMatrix.txt");
   remove("majorHowMatrix.txt");
   remove("majorChordMatrix.txt");
   remove("minorHighMatrix.txt");
@@ -102,15 +104,7 @@ void outputMatrices() {
   std::rename("minorLowMatrixNew.txt", "minorLowMatrix.txt");
   std::rename("minorChordMatrixNew.txt", "minorChordMatrix.txt");
 
-  printf("File renaming complete\n");*/
-
-  //Free all host matrices
-  free(majorHighNotes);
-  free(majorLowNotes);
-  free(majorChords);
-  free(minorHighNotes);
-  free(minorLowNotes);
-  free(minorChords);
+  printf("File renaming complete\n");
 }
 
 inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2, int part)
@@ -195,10 +189,17 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  //Allocate memory for host and device
+  printf("Begin host malloc\n");
+  auto start = high_resolution_clock::now();
+
+  // Allocate memory for host and device
   allocHost();
 
-  printf("Finished Initialization \n");
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished Initialization." 
+            << duration.count() << "microS" << std::endl;
 
   std::string fileLine;
   std::ifstream majorFile(argv[1]);
@@ -221,8 +222,10 @@ int main(int argc, char** argv) {
   }
 
   printf("Begin parsing files \n");
-  int i = 0;
+  start = high_resolution_clock::now();
 
+  int i = 0;
+  
   //Loop through all given input files, parse file, and add count to device matrices
   while (std::getline(majorFile, fileLine)) { //Keep looping until both files are finished
     i++;
@@ -267,6 +270,7 @@ int main(int argc, char** argv) {
     }
   }
   while(std::getline(minorFile, fileLine)) { //invalid line, switch to finish other side
+    i++;
     found = fileLine.find(' ');
     if (fileLine.find('H') != std::string::npos) { //Set correct part, soprano or bass
       minorPart = 1;
@@ -306,9 +310,34 @@ int main(int argc, char** argv) {
     }
   }
 
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished Parsing." 
+            << duration.count() << "microS" << std::endl;
+  std::cout << "Read through" << i << "lines" << std::endl;
+
   printf("Start outputting matrices \n");
-  //output matrices to files
+
+  // output matrices to files
   outputMatrices();
+
+  std::cout << "Freeing data structures." << std::endl;
+  start = high_resolution_clock::now();
+
+  // Free all host matrices
+  free(majorHighNotes);
+  free(majorLowNotes);
+  free(majorChords);
+  free(minorHighNotes);
+  free(minorLowNotes);
+  free(minorChords);
+
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished free data structures." 
+            << duration.count() << "microS" << std::endl;
 
   return 0;
 }
