@@ -1,3 +1,7 @@
+# constants for combine.py
+OUTPUT_FILE_MAJOR = 'notesMajor.txt'
+OUTPUT_FILE_MINOR = 'notesMinor.txt'
+
 # Constants for process.py
 
 START_CODE = 'S'

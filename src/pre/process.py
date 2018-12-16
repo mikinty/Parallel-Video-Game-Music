@@ -11,16 +11,25 @@ from CONST import *
 import music21
 import glob
 
+done = glob.glob("MIDI/*.txt", recursive=True)
+
 # Convert files in directory
-for f in glob.glob("TEST\**\*.mid", recursive=True):
+for f in glob.glob("MIDI/*.mid", recursive=True):
   print('Converting', f)
 
-  # output file
   newFileName = f[:-4] + '.txt'
-  fo = open(newFileName, 'w')
+
+  if newFileName in done:
+    print('Already converted', f)
+    continue
 
   # first, transpose the entire score into C major or A minor
-  score = music21.converter.parse(f)
+  try:
+    score = music21.converter.parse(f)
+  except:
+    print('Parsing', f, 'failed')
+    continue
+
   key = score.analyze('key')
   mode = key.mode
 
@@ -30,9 +39,15 @@ for f in glob.glob("TEST\**\*.mid", recursive=True):
   elif mode == "minor":
     halfSteps = minors[key.tonic.name]
 
-  newscore = score.transpose(halfSteps)
+  try:
+    newscore = score.transpose(halfSteps)
+  except:
+    print('Tranposing', f, 'failed')
+    continue
 
   ### Now, print out score in our text format ###
+  # output file
+  fo = open(newFileName, 'w')
 
   # Major/Minor
   print(mode, file=fo)
@@ -112,5 +127,6 @@ for f in glob.glob("TEST\**\*.mid", recursive=True):
   fo.close()
 
   print('Saved', newFileName)
+
 
 print("Done converting files")
