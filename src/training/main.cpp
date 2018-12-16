@@ -4,11 +4,13 @@
 #include "training.h"
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 #include <cuda.h>
-#include<cuda_runtime.h>
+#include <cuda_runtime.h>
 
 using namespace std;
+using namespace std::chrono;
 
 //Define global variables
 int* majorHighNotes;
@@ -116,19 +118,18 @@ void outputMatrices() {
 /**
  * @brief uses cudaHostAlloc to allocated pinned memory for global structures
  */
-void allocHost(){
-
-  //Allocate memory for all final host matrices
-  cudaHostAlloc(&majorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  cudaHostAlloc(&majorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  cudaHostAlloc(&minorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
-  cudaHostAlloc(&minorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+void allocHost() {
+  // Allocate memory for all final host matrices
+  majorHighNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
+  majorLowNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
+  minorHighNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
+  minorLowNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
    
-  //Chord Matrices
+  // Chord Matrices
   majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
   minorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
  
-  //Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
+  // Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
   cudaHostAlloc(&majorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
   cudaHostAlloc(&majorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
   cudaHostAlloc(&minorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
@@ -142,18 +143,34 @@ void allocHost(){
  * @param argv array of command line arguments, where the first is the major files, second is minor files
  */
 int main(int argc, char** argv) {
-
-  //If there is not a directory to look at, stop
+  // We require you to input the major and minor files, in that order
   if (argc != 3) {
     printf("Improperly formatted command line input (give two file paths)\n");
     return 0;
   }
 
+  printf("Beginning CUDA Initialization\n");
+
+  auto start = high_resolution_clock::now();
+
   //Allocate memory for host and device
   allocHost();
+
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished Host Initialization." 
+            << duration.count() << "microS" << std::endl;
+
+  start = high_resolution_clock::now();
+
   initCuda();
 
-  printf("Finished Initialization \n");
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished CUDA Initialization." 
+            << duration.count() << "microS" << std::endl;
 
   std::string fileLine;
   std::ifstream majorFile(argv[1]);
@@ -173,6 +190,9 @@ int main(int argc, char** argv) {
   }
 
   printf("Begin parsing files \n");
+
+  /*** TIME: Start parsing file and queueing CUDA ***/
+  start = high_resolution_clock::now();
 
   //Loop through all given input files, parse file, and add count to device matrices
   while (endFile != 2) { //Keep looping until both files are finished
@@ -208,16 +228,18 @@ int main(int argc, char** argv) {
       }
       //If the notes run past the array length, send array over and switch maj/min
       if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH) {
+
         countTransitionsCuda(majorSoprano, sLen, majorBass, bLen, mood);
         sLen = 0;
         bLen = 0;
         mood = 1;
         //Wait for minor stream to open up before overwriting
         cudaStreamSynch(mood);
+
         continue;
       }
     }
-    else { //minor case
+    else { // minor case
       if (!std::getline(minorFile, fileLine)) { //invalid line, switch to finish other side
         countTransitionsCuda(minorSoprano, sLen, minorBass, bLen, mood);
         sLen = 0;
@@ -261,25 +283,46 @@ int main(int argc, char** argv) {
   }
  
   printf("Finished queuing transitions \n");
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished parsing files and queueing transitions. " 
+            << duration.count() << "microS" << std::endl;
+
+  /*** TIME: copying to host ***/
+  start = high_resolution_clock::now();
 
   cudaToHost();
   printf("Finished copying to host \n");
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
 
-  //Free all device memory
+  std::cout << "Finished copying to host. " 
+            << duration.count() << "microS" << std::endl;
+
+  /*** TIME: freeing up memory ***/
+  start = high_resolution_clock::now();
+
+  // Free all device memory
   freeCuda();
 
-  // printf("Start outputting matrices \n");
-
-  // output matrices to files
-  // outputMatrices();
-
-  //Free all host matrices
-  cudaFreeHost(majorHighNotes);
-  cudaFreeHost(majorLowNotes);
+  // Free all host matrices
+  free(majorHighNotes);
+  free(majorLowNotes);
   free(majorChords);
-  cudaFreeHost(minorHighNotes);
-  cudaFreeHost(minorLowNotes);
+  free(minorHighNotes);
+  free(minorLowNotes);
   free(minorChords);
+  cudaFree(majorSoprano);
+  cudaFree(majorBass);
+  cudaFree(minorSoprano);
+  cudaFree(minorBass);
+
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+
+  std::cout << "Finished freeing up data structures. " 
+            << duration.count() << "microS" << std::endl;
 
   return 0;
 }
