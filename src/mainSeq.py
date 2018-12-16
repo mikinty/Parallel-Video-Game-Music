@@ -113,7 +113,7 @@ async def main(websocket, path):
       transactionID += 1
       
       try:
-        await websocket.send(getNotes())
+        await websocket.send(getNotes(NUMMEASURES))
       except:
         print('Error getting notes')
     elif data['request'] == 'SET_MAJOR':
@@ -141,18 +141,9 @@ a = time()
 loadMatrices()
 print('Time:', time() - a, 'to initialize matrices')
 
-#measures = [1, 4, 10, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
 
-measures = [98304]
+### SERVER INIT ###
+start_server = websockets.serve(main, '0.0.0.0', 80)
 
-for numM in measures:
-  for i in range(1): 
-    print('getting notes for', numM, 'measures')
-    a = time()
-    getNotes(numM)
-    print('Time:', time() - a, 'to get notes for', numM, 'measures')
-
-#start_server = websockets.serve(main, '0.0.0.0', 80)
-
-#asyncio.get_event_loop().run_until_complete(start_server)
-#asyncio.get_event_loop().run_forever()
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
