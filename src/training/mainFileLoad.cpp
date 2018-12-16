@@ -25,6 +25,142 @@ sound_t* majorBass;
 sound_t* minorSoprano;
 sound_t* minorBass;
 
+inline int findNoteCell(int curTone, int curDur, int prevTone1, int prevDur1, int prevTone2, int prevDur2, int part)
+{
+  // current note 
+  int col = curTone * NUM_DUR + curDur;
+
+  //If previous tones are chords, get top note and find closest
+  if (prevTone1 >= CHORD_OFFSET){
+      prevTone1 = (prevTone1 - CHORD_OFFSET) / 144; //get top chord note
+      if (curTone == NUM_TONES - 1){ //is rest
+        prevTone1 = prevTone1 + 12 * (2 * part);
+      }
+      else {
+        prevTone1 = curTone - (curTone % 12) + prevTone1; //find closest prevTone1 note
+      }
+  }
+  if (prevTone2 >= CHORD_OFFSET){
+      prevTone2 = (prevTone2 - CHORD_OFFSET) / 144; //get top chord note
+      if (curTone == NUM_TONES - 1) { //is rest
+        prevTone2 = prevTone2 + 12 * (2 * part);
+      }
+      else { //is note 
+        prevTone2 = curTone - (curTone % 12) + prevTone2; //find closest note
+      }
+  }
+
+  int row = ((prevTone1 * NUM_DUR) + prevDur1) * NUM_NOTES
+    + ((prevTone2 * NUM_DUR) + prevDur2); 
+
+  return (row) * NUM_NOTES + col;
+}
+
+/**
+ * @brief Transforms 2 tones into a matrix index for the chord matrix
+ * 
+ * @param curTone tone of the current note
+ * @param prevTone tone of the previous note
+ */
+inline int findChordCell(int curTone, int prevTone){
+  
+  if (prevTone >= CHORD_OFFSET) { //is a chord
+    prevTone = prevTone - CHORD_OFFSET; //shift chord down
+  }
+  else if (prevTone == NUM_TONES - 1) { //is a rest
+    return -1;
+  }
+  else { //is a note
+    prevTone = prevTone % 12 + 12 * (prevTone % 12) + 144 * (prevTone % 12);
+  }
+
+  return prevTone * NUM_CHORDS + (curTone - CHORD_OFFSET);
+}
+
+void countTransitions(sound_t* sop, int sLen, sound_t* bass, int bLen, int mood){
+  int curTone = -1;
+  int curDur = -1;
+  int prevTone1 = -1;
+  int prevDur1 = -1;
+  int prevTone2 = -1;
+  int prevDur2 = -1;
+  if (mood == 0){
+    for (int i = 0; i < sLen; i++){
+      prevTone2 = prevTone1;
+      prevDur2 = prevDur1;
+      prevTone1 = curTone;
+      prevDur1 = curDur;
+      curTone = sop[i].tone;
+      curDur = sop[i].duration;
+      if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
+        int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2,2);
+        majorHighNotes[cell]++;   
+      }
+      else if (curTone >= CHORD_OFFSET && prevTone1 != -1) {
+        int cell = findChordCell(curTone, prevTone1);
+        if (cell != -1)
+          majorChords[cell]++;
+      }
+    }
+    prevTone2 = -1;
+    prevTone1 = -1;
+    for (int i = 0; i < bLen; i++){
+      prevTone2 = prevTone1;
+      prevDur2 = prevDur1;
+      prevTone1 = curTone;
+      prevDur1 = curDur;
+      curTone = bass[i].tone;
+      curDur = bass[i].duration;
+      if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
+        int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2,2);
+        majorLowNotes[cell]++;
+      }
+      else if (curTone >= CHORD_OFFSET && prevTone1 != -1) {
+        int cell = findChordCell(curTone, prevTone1);
+        if (cell != -1)
+          majorChords[cell]++;
+      }
+    }
+  }
+  else {
+    for (int i = 0; i < sLen; i++){
+      prevTone2 = prevTone1;
+      prevDur2 = prevDur1;
+      prevTone1 = curTone;
+      prevDur1 = curDur;
+      curTone = sop[i].tone;
+      curDur = sop[i].duration;
+      if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
+        int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2,2);
+        minorHighNotes[cell]++;
+      }
+      else if (curTone >= CHORD_OFFSET && prevTone1 != -1) {
+        int cell = findChordCell(curTone, prevTone1);
+        if (cell != -1)
+          minorChords[cell]++;
+        }
+      }
+      prevTone2 = -1;
+      prevTone1 = -1;
+      for (int i = 0; i < bLen; i++){
+        prevTone2 = prevTone1;
+        prevDur2 = prevDur1;
+        prevTone1 = curTone;
+        prevDur1 = curDur;
+        curTone = bass[i].tone;
+        curDur = bass[i].duration;
+        if (curTone < NUM_TONES && prevTone2 != -1) { //if not a chord, check device and insert
+          int cell = findNoteCell(curTone, curDur, prevTone1, prevDur1, prevTone2, prevDur2,2);
+          minorLowNotes[cell]++;
+        }
+        else if (curTone >= CHORD_OFFSET && prevTone1 != -1) {
+          int cell = findChordCell(curTone, prevTone1);
+          if (cell != -1)
+            minorChords[cell]++;
+          }
+       }
+  }
+}
 /**
  * @brief Outputs matrices to files
  */
@@ -119,21 +255,33 @@ void outputMatrices() {
  * @brief uses cudaHostAlloc to allocated pinned memory for global structures
  */
 void allocHost() {
-  // Allocate memory for all final host matrices
+  //Allocate memory for all final host matrices
+  /*
+  cudaHostAlloc(&majorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&majorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&minorHighNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  cudaHostAlloc(&minorLowNotes, sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES), cudaHostAllocPortable);
+  */
   majorHighNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
   majorLowNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
   minorHighNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
   minorLowNotes = (int *) malloc(sizeof(int) * (MATRIX_BLOCK_ROWS * NUM_GPU_PER_MATRIX * NUM_NOTES));
    
-  // Chord Matrices
+  //Chord Matrices
   majorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
   minorChords =  (int *) malloc(sizeof(int) * (NUM_CHORDS * NUM_CHORDS));
  
-  // Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
+  //Arrays of notes read from files, initialized to ARRAY_LENGTH (1000) in length
   cudaHostAlloc(&majorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
   cudaHostAlloc(&majorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
   cudaHostAlloc(&minorSoprano, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
   cudaHostAlloc(&minorBass, sizeof(sound_t) * ARRAY_LENGTH, cudaHostAllocPortable);
+  /*
+  majorSoprano = (sound_t*) malloc(sizeof(sound_t) * ARRAY_LENGTH);
+  majorBass = (sound_t*) malloc(sizeof(sound_t) * ARRAY_LENGTH);
+  minorSoprano = (sound_t*) malloc(sizeof(sound_t) * ARRAY_LENGTH);
+  minorBass = (sound_t*) malloc(sizeof(sound_t) * ARRAY_LENGTH);
+  */
 }
 
 /**
@@ -181,8 +329,10 @@ int main(int argc, char** argv) {
   int majorPart; //part the major file is on
   int mood = 0; // 0 = major, 1 = minor
   int endFile = 0;
-  int sLen = 0;
-  int bLen = 0;
+  int sLenMaj = 0;
+  int bLenMaj = 0;
+  int sLenMin = 0;
+  int bLenMin = 0;
 
   if (!majorFile || !minorFile){ //Throw error if file not found
     std::cerr << "Cannot open file " <<std::endl;
@@ -198,13 +348,8 @@ int main(int argc, char** argv) {
   while (endFile != 2) { //Keep looping until both files are finished
     if (mood == 0) { //major case
       if (!std::getline(majorFile, fileLine)) { //invalid line, switch to finish other side
-        countTransitionsCuda(majorSoprano, sLen, majorBass, bLen, mood);
-        sLen = 0;
-        bLen = 0;
         mood = 1;
         endFile++;
-        //Wait for minor stream to open up before overwriting
-        cudaStreamSynch(mood);
         continue;
       }
       found = fileLine.find(' ');
@@ -216,38 +361,21 @@ int main(int argc, char** argv) {
       }
       else if (found != std::string::npos){ //insert into correct notes line
         if (majorPart == 0){   
-          majorBass[bLen].tone = std::stoi(fileLine.substr(0, found));
-          majorBass[bLen].duration = std::stoi(fileLine.substr(found+1));
-          bLen ++;
+          majorBass[bLenMaj].tone = std::stoi(fileLine.substr(0, found));
+          majorBass[bLenMaj].duration = std::stoi(fileLine.substr(found+1));
+          bLenMaj ++;
         }
         else {
-          majorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
-          majorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
-          sLen ++;
+          majorSoprano[sLenMaj].tone = std::stoi(fileLine.substr(0, found));
+          majorSoprano[sLenMaj].duration = std::stoi(fileLine.substr(found+1));
+          sLenMaj ++;
         }
       }
-      //If the notes run past the array length, send array over and switch maj/min
-      if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH) {
-
-        countTransitionsCuda(majorSoprano, sLen, majorBass, bLen, mood);
-        sLen = 0;
-        bLen = 0;
-        mood = 1;
-        //Wait for minor stream to open up before overwriting
-        cudaStreamSynch(mood);
-
-        continue;
-      }
     }
-    else { // minor case
+    else { //minor case
       if (!std::getline(minorFile, fileLine)) { //invalid line, switch to finish other side
-        countTransitionsCuda(minorSoprano, sLen, minorBass, bLen, mood);
-        sLen = 0;
-        bLen = 0;
-        mood = 0;
         endFile++;
         //Wait for major stream to open up before overwriting
-        cudaStreamSynch(mood);
         continue;
       }
       found = fileLine.find(' ');
@@ -259,34 +387,28 @@ int main(int argc, char** argv) {
       }
       else if (found != std::string::npos){ //insert into correct notes line
         if (minorPart == 0) {
-          minorBass[bLen].tone = std::stoi(fileLine.substr(0, found));
-          minorBass[bLen].duration = std::stoi(fileLine.substr(found+1));
-          bLen ++;
+          minorBass[bLenMin].tone = std::stoi(fileLine.substr(0, found));
+          minorBass[bLenMin].duration = std::stoi(fileLine.substr(found+1));
+          bLenMin ++;
         }
         else {
-          minorSoprano[sLen].tone = std::stoi(fileLine.substr(0, found));
-          minorSoprano[sLen].duration = std::stoi(fileLine.substr(found+1));
-          sLen ++;
+          minorSoprano[sLenMin].tone = std::stoi(fileLine.substr(0, found));
+          minorSoprano[sLenMin].duration = std::stoi(fileLine.substr(found+1));
+          sLenMin ++;
         }
-      }
-      //If the notes run past the array length, send array over and switch maj/min
-      if (bLen >= ARRAY_LENGTH || sLen >= ARRAY_LENGTH){
-        countTransitionsCuda(minorSoprano, sLen, minorBass, bLen, mood);
-        sLen = 0;
-        bLen = 0;
-        mood = 0;
-        //Wait for major stream to open up before overwriting
-        cudaStreamSynch(mood);
-        continue;
       }
     }   
   }
- 
-  printf("Finished queuing transitions \n");
+
+  start = high_resolution_clock::now();
+
+  countTransitionsCuda(majorSoprano, sLenMaj, majorBass, bLenMaj, 0);
+  countTransitionsCuda(minorSoprano, sLenMin, minorBass, bLenMin, 1);
+
   stop = high_resolution_clock::now();
   duration = duration_cast<microseconds>(stop - start);
 
-  std::cout << "Finished parsing files and queueing transitions. " 
+  std::cout << "Finished Cuda Counting\n " 
             << duration.count() << "microS" << std::endl;
 
   /*** TIME: copying to host ***/
@@ -303,10 +425,19 @@ int main(int argc, char** argv) {
   /*** TIME: freeing up memory ***/
   start = high_resolution_clock::now();
 
-  // Free all device memory
+  //Free all device memory
   freeCuda();
 
-  // Free all host matrices
+  start = high_resolution_clock::now();
+
+  countTransitions(majorSoprano, sLenMaj, majorBass, bLenMaj, 0);
+  countTransitions(minorSoprano, sLenMin, minorBass, bLenMin, 1);
+
+  stop = high_resolution_clock::now();
+  duration = duration_cast<microseconds>(stop - start);
+  std::cout << "FInished Seq Counting" << duration.count() << "microS" << std::endl;
+
+//Free all host matrices
   free(majorHighNotes);
   free(majorLowNotes);
   free(majorChords);
