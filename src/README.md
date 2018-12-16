@@ -20,7 +20,7 @@ up with the `anaconda` Python pathing. So you instead want to do:
 ```
 > sudo -s # switch into sudo user mode
 
-> python server.py
+> python main(Seq).py
 ```
 
 The reason for sudo access is because we are serving a program on the 
