@@ -129,3 +129,39 @@ export const NOTE_DURATIONS = [
 
 // Server commands
 export const START_MUSIC_REQ = 'START_MUSIC';
+
+/**
+ * Preset settings to give to server. 
+ * 
+ * For voices, must be length 10, and:
+ * 0 = chord, 1 = bass, 2 = soprano, -1 = silent
+ * 
+ * For mood: 0 major / 1 minor
+ */
+export const SETTINGS_BASIC = {
+  name: 'basic',
+  mood: 0,
+  voices: [0, 1, 2, 0, 0, 0, 0, 0, 0, 0],
+  tempo: 200
+};
+
+export const SETTINGS_JOURNEY = {
+  name: 'journey',
+  mood: 0,
+  voices: [0, 1, 2, 2, 0, 0, 0, 0, 0, 0],
+  tempo: 220
+};
+
+export const SETTINGS_SORROW = {
+  name: 'sorrow',
+  mood: 1,
+  voices: [0, 1, 1, 2, 0, 0, 0, 0, 0, 0],
+  tempo: 150
+};
+
+export const SETTINGS_BATTLE= {
+  name: 'battle',
+  mood: 0,
+  voices: [0, 0, 1, 1, 2, 2, 0, 0, 0, 0],
+  tempo: 300
+};
