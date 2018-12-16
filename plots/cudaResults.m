@@ -23,13 +23,13 @@ par = [
 plot(N, par/1000, '--.', 'MarkerSize', 15) 
 hold on
 plot(N, seq/1000, '--.', 'MarkerSize', 15)
-title('Time of Parallel vs. Sequential Music Generation')
+title('Time of Parallel vs. Sequential CUDA Training')
 ylabel('Time (ms)')
-xlabel('Number of measures (log)')
+xlabel('Number of notes (log)')
 
 figure;
 plot(N, seq ./ par, '--.', 'MarkerSize', 15)
-title('Speedup of Parallel vs. Sequential Music Generation')
+title('Speedup of Parallel vs. Sequential CUDA Training')
 ylabel('Speedup')
 ylim([0, 11])
 xlabel('Number of notes (log)')

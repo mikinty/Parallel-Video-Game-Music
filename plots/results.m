@@ -69,5 +69,5 @@ hold on
 semilogx(N, z, 'LineWidth', 3)
 title('Speedup of Parallel vs. Sequential Music Generation')
 ylabel('Speedup')
-ylim([0, 11])
+ylim([0, 12])
 xlabel('Number of measures (log)')
