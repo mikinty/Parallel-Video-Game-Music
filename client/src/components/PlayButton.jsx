@@ -119,7 +119,7 @@ function playNotes (notes) {
   Tone.Transport.seconds = 0;
 
   // parse through the notes we are getting  
-  for (let j = 2; j < 3; j++) {
+  for (let j = 3; j < 6; j++) {
     var currTime = 0;
 
     for (let i = 0; i < notes[j].length; i++) { 
@@ -188,7 +188,7 @@ ws.onmessage = (event) => {
 
 }
 
-export default class RadioSelect extends React.Component {
+export default class PlayButton extends React.Component {
   constructor () {
     super();
   }
