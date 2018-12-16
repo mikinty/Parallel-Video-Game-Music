@@ -11,8 +11,26 @@ import RadioSelect from './components/RadioSelect';
 import PlayButton from './components/PlayButton';
 
 class App extends React.Component {
+  constructor (props) {
+    super(props);
+
+    this.state = {
+      settings: CONST.SETTINGS_BASIC
+    };
+  }
   componentDidMount () {
     document.title = CONST.TITLE;
+  }
+
+  changeSettings (newSettings) {
+    console.log('new setting', newSettings);
+    this.setState({
+      settings: newSettings
+    });
+  }
+
+  getSettings () {
+    return this.state.settings;
   }
 
   render () {
@@ -23,11 +41,11 @@ class App extends React.Component {
         </div>
 
         <div className='main'>
-          <RadioSelect />
+          <RadioSelect changeSettings={this.changeSettings.bind(this)} />
         </div>
 
         <div className='buttons'>
-          <PlayButton />
+          <PlayButton settings={this.state.settings} />
         </div>
         
       </div>

@@ -161,7 +161,7 @@ export const SETTINGS_SORROW = {
 
 export const SETTINGS_BATTLE= {
   name: 'battle',
-  mood: 0,
+  mood: 1,
   voices: [0, 0, 1, 1, 2, 2, 0, 0, 0, 0],
   tempo: 300
 };

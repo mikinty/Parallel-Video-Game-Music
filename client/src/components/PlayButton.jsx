@@ -182,31 +182,26 @@ function playNotes (notes) {
 
 // listen to websocket events
 ws.onmessage = (event) => {
-  console.log(event);
+  console.log('Received', event);
 
-  // [[[a, b]], [[c, d]], [] ]
   var notes = JSON.parse(event.data).notes;
 
   playNotes(notes);
-
 }
 
 export default class PlayButton extends React.Component {
-  constructor () {
-    super();
+  constructor (props) {
+    super(props);
+
+    // ES6 requires binding
+    this.handleClick = this.handleClick.bind(this);
   }
-  
 
   // Called when we click play
+  // Requests music from the server
   handleClick () {
-    /*
-    ws.send(JSON.stringify({
-      request: CONST.START_MUSIC_REQ,
-      data: 'TODD MOWRY IS THE BEST'
-    }));
-    */
-
-    playNotes(DATA.testNotes);
+    console.log('Requesting', JSON.stringify(this.props.settings));
+    ws.send(JSON.stringify(this.props.settings));
   }
 
   render() {
