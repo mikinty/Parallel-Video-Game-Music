@@ -14,3 +14,9 @@ algorithm that utilizes parallelism techniques, including GPU processing and mul
 - `src`: contains all the backend code used to implement this project, including preprocessing, training, and music generation.
 
 For more information about each folder, please see their respective READMEs.
+
+## Client
+
+Screenshot from the client:
+
+![Screenshot from the client](docs/diagrams/clientScreen.png)
